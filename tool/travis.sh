@@ -27,4 +27,4 @@ dartanalyzer --fatal-warnings \
   test/serialization_test.dart
 
 # Run the tests.
-dart test/serialization_test.dart && dart test/no_library_test.dart && dart test/test_models.dart
+dart test/serialization_test.dart && dart test/no_library_test.dart
