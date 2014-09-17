@@ -1,5 +1,7 @@
 # A general-purpose serialization facility for Dart Objects.
 
+[![Build Status](https://travis-ci.org/google/serialization.dart.svg?branch=master)](https://travis-ci.org/google/serialization.dart)
+
 This provides the ability to save and restore objects to pluggable
 Formats using pluggable Rules.
 
