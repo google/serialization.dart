@@ -14,7 +14,7 @@ set -e
 
 # Get the Dart SDK.
 DART_DIST=dartsdk-linux-x64-release.zip
-echo_and_run curl https://storage.googleapis.com/dart-archive/channels/$DART_CHANNEL/release/latest/sdk/$DART_DIST > $DART_DIST
+echo_and_run "curl https://storage.googleapis.com/dart-archive/channels/$DART_CHANNEL/release/latest/sdk/$DART_DIST > $DART_DIST"
 unzip $DART_DIST > /dev/null
 rm $DART_DIST
 export DART_SDK="$PWD/dart-sdk"
@@ -27,9 +27,7 @@ dart --version
 echo_and_run pub get
 
 # Verify that the libraries are error free.
-echo_and_run dartanalyzer --fatal-warnings \
-  lib/serialization.dart \
-  test/serialization_test.dart
+echo_and_run "dartanalyzer --fatal-warnings lib/serialization.dart test/serialization_test.dart"
 
 # Run the tests.
 echo_and_run dart test/serialization_test.dart && dart test/no_library_test.dart
