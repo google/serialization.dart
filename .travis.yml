@@ -5,5 +5,8 @@ before_install:
   - export DISPLAY=:99.0
 before_script:
  - chmod +x ./tool/travis.sh
+env:
+  - DART_CHANNEL=stable
+  - DART_CHANNEL=dev
 script:
   - ./tool/travis.sh
