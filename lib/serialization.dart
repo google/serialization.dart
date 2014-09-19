@@ -15,6 +15,7 @@
  * ## Setup
  *
  * A simple example of usage is
+ *      import 'package:serialization/serialization_mirrors.dart';
  *
  *      var address = new Address();
  *      address.street = 'N 34th';
@@ -53,10 +54,11 @@
  * ## Writing rules
  *
  * We can also use a completely non-reflective rule to serialize and
- * de-serialize objects. This can be more work, but it does work in
- * dart2js, where mirrors are not yet implemented. We can specify this in two
+ * de-serialize objects. This can be more work, but it produces smaller
+ * code size in dart2js. We can specify this in two
  * ways. First, we can write our own SerializationRule class that has methods
  * for our Address class.
+ *      import 'package:serialization/serialization.dart';
  *
  *      class AddressRule extends CustomRule {
  *        bool appliesTo(instance, Writer w) => instance.runtimeType == Address;
@@ -98,7 +100,7 @@
  *      fillInAddress(Address a, Map m) => a.city = m["city"];
  *      var serialization = new Serialization()
  *        ..addRule(
- *            new ClosureRule(anAddress.runtimeType,
+ *            new ClosureRule(Address,
  *                addressToMap, createAddress, fillInAddress);
  *
  * In this case we have created standalone functions rather than
@@ -193,13 +195,11 @@
  */
 library serialization;
 
-import 'src/mirrors_helpers.dart';
 import 'src/serialization_helpers.dart';
 import 'dart:collection';
 
 part 'src/reader_writer.dart';
 part 'src/serialization_rule.dart';
-part 'src/basic_rule.dart';
 part 'src/format.dart';
 
 /**
@@ -278,53 +278,29 @@ class Serialization {
    * will populate the rules from that data.
    */
   factory Serialization.blank()
-    => new Serialization._(new List<SerializationRule>());
+    => new Serialization.forRules(new List<SerializationRule>());
 
-  Serialization._(List<SerializationRule> rules) :
+  /** Internal constructor. */
+  Serialization.forRules(List<SerializationRule> rules) :
     this._rules = rules,
     this.rules = new UnmodifiableListView(rules);
 
   /**
-   * Create a [BasicRule] rule for [instanceOrType]. Normally this will be
-   * a type, but for backward compatibilty we also allow you to pass an
-   * instance (except an instance of Type), and the rule will be created
-   * for its runtimeType. Optionally
-   * allows specifying a [constructor] name, the list of [constructorFields],
-   * and the list of [fields] not used in the constructor. Returns the new
-   * rule. Note that [BasicRule] uses reflection, and so will not work with the
-   * current state of dartj2s. If you need to run there, consider using
-   * [CustomRule] instead.
-   *
-   * If the optional parameters aren't specified, the default constructor will
-   * be used, and the list of fields will be computed. Alternatively, you can
-   * omit [fields] and provide [excludeFields], which will then compute the
-   * list of fields specifically excluding those listed.
-   *
-   * The fields can be actual public fields, but can also be getter/setter
-   * pairs or getters whose value is provided in the constructor. For the
-   * [constructorFields] they can also be arbitrary objects. Anything that is
-   * not a String will be treated as a constant value to be used in any
-   * construction of these objects.
-   *
-   * If the list of fields is computed, fields from the superclass will be
-   * included. However, each subclass needs its own rule, since the constructors
-   * are not inherited, and so may need to be specified separately for each
-   * subclass.
+   * Create a rule for a type reflectively. This is not implemented in this
+   * library as it requires mirrors. To use this, import
+   * `serialization_mirrors.dart` instead.
    */
-  BasicRule addRuleFor(
+   addRuleFor(
       instanceOrType,
       {String constructor,
         List constructorFields,
         List<String> fields,
         List<String> excludeFields}) {
-
-    var rule = new BasicRule(
-        turnInstanceIntoSomethingWeCanUse(
-            instanceOrType),
-        constructor, constructorFields, fields, excludeFields);
-    addRule(rule);
-    return rule;
-  }
+     throw new UnsupportedError(
+         'Attempted to serialize type without a defined rule $instanceOrType. '
+         'This is not supported in basic serialization, either define a rule '
+         'for this type or use serialization_mirrors');
+   }
 
   /** Set up the default rules, for lists and primitives. */
   void addDefaultRules() {
@@ -334,7 +310,6 @@ class Serialization {
     // it will always find the first one.
     addRule(new ListRuleEssential());
     addRule(new MapRule());
-    addRule(new SymbolRule());
     addRule(new DateTimeRule());
   }
 
@@ -344,9 +319,10 @@ class Serialization {
    * a SerializationRule subclass which you have created, you can use this
    * method.
    */
-  void addRule(SerializationRule rule) {
+  SerializationRule addRule(SerializationRule rule) {
     rule.number = _rules.length;
     _rules.add(rule);
+    return rule;
   }
 
   /**
@@ -418,7 +394,7 @@ class Serialization {
       candidateRules = rules;
     }
     Iterable applicable = candidateRules.where(
-        (each) => each.appliesTo(target, w));
+        (each) => each.appliesTo(target, w)).toList();
 
     if (applicable.isEmpty) {
       return create ? [addRuleFor(target)] : applicable;
@@ -435,6 +411,12 @@ class Serialization {
   }
 
   /**
+   * Create a new instance of Serialization.
+   */
+  // We need to do this to create a new instance of the appropriate subclass.
+  Serialization newSerialization() => new Serialization();
+
+  /**
    * Create a Serialization for serializing SerializationRules. This is used
    * to save the rules in a self-describing format along with the data.
    * If there are new rule classes created, they will need to be described
@@ -447,22 +429,14 @@ class Serialization {
     // or we might just be able to validate that they're correctly set up
     // on the other side.
 
-    var meta = new Serialization()
+    var meta = newSerialization()
       ..selfDescribing = false
-      ..addRuleFor(ListRule)
-      ..addRuleFor(MapRule)
-      ..addRuleFor(PrimitiveRule)
-      ..addRuleFor(ListRuleEssential)
-      ..addRuleFor(BasicRule,
-          constructorFields: ['type',
-            'constructorName',
-            'constructorFields', 'regularFields', []],
-          fields: [])
+      ..addRule(new ListRuleRule())
+      ..addRule(new MapRuleRule())
+      ..addRule(new PrimitiveRuleRule())
+      ..addRule(new ListRuleEssentialRule())
       ..addRule(new NamedObjectRule())
-      ..addRule(new MirrorRule())
-      ..addRuleFor(MirrorRule)
-      ..addRuleFor(SymbolRule)
-      ..addRuleFor(DateTimeRule);
+      ..addRule(new DateTimeRuleRule());
     meta.namedObjects = namedObjects;
     return meta;
   }

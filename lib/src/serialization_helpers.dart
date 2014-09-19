@@ -9,8 +9,6 @@
  */
 library serialization_helpers;
 
-import 'dart:collection';
-
 /**
  * A named function of one argument that just returns it. Useful for using
  * as a default value for a function parameter or other places where you want

@@ -71,8 +71,11 @@ abstract class SerializationRule {
   // doing a depth-first rather than breadth-first traversal, but I'm not
   // sure it's worth it.
   flatten(state, Writer writer) {
+    // TODO(alanknight): This seems like there are circumstances where it
+    // might need to make references for keys as well, see test TODOs related
+    // to CustomRules that return maps. But just doing that also fails.
     keysAndValues(state).forEach((key, value) {
-      var reference = writer._referenceFor(value);
+      var reference = writer.referenceFor(value);
       state[key] = reference;
     });
   }
@@ -190,7 +193,7 @@ class ListRuleEssential extends ListRule {
 
 /**
  * This rule handles things that implement Map. It will recreate them as
- * whatever the default implemenation of Map is on the target platform. If a
+ * whatever the default implementation of Map is on the target platform. If a
  * map has string keys it will attempt to retain it as a map for JSON formats,
  * otherwise it will store it as a list of references to keys and values.
  */
@@ -221,13 +224,13 @@ class MapRule extends SerializationRule {
     bool keysAreAllStrings = state.keys.every((x) => x is String);
     if (keysAreAllStrings && !writer.shouldUseReferencesForPrimitives) {
       keysAndValues(state).forEach(
-          (key, value) => state[key] = writer._referenceFor(value));
+          (key, value) => state[key] = writer.referenceFor(value));
       return state;
     } else {
       var newState = [];
       keysAndValues(state).forEach((key, value) {
-        newState.add(writer._referenceFor(key));
-        newState.add(writer._referenceFor(value));
+        newState.add(writer.referenceFor(key));
+        newState.add(writer.referenceFor(value));
       });
       return newState;
     }
@@ -366,7 +369,7 @@ class NamedObjectRule extends SerializationRule {
   // extractState, and I'm reluctant to add yet another parameter until
   // proven necessary.
   flatten(state, Writer writer) {
-    state[0] = writer._referenceFor(state[0]);
+    state[0] = writer.referenceFor(state[0]);
   }
 
   /** Look up the named object and return it. */
@@ -381,55 +384,9 @@ class NamedObjectRule extends SerializationRule {
 }
 
 /**
- * This rule handles the special case of Mirrors. It stores the mirror by its
- * qualifiedName and attempts to look it up in both the namedObjects
- * collection, or if it's not found there, by looking it up in the mirror
- * system. When reading, the user is responsible for supplying the appropriate
- * values in [Serialization.namedObjects] or in the [externals] paramter to
- * [Serialization.read].
- */
-class MirrorRule extends NamedObjectRule {
-  bool appliesTo(object, Writer writer) => object is DeclarationMirror;
-
-  String nameFor(DeclarationMirror object, Writer writer) =>
-      MirrorSystem.getName(object.qualifiedName);
-
-  inflateEssential(state, Reader r) {
-    var qualifiedName = r.resolveReference(state.first);
-    var lookupFull = r.objectNamed(qualifiedName, (x) => null);
-    if (lookupFull != null) return lookupFull;
-    var separatorIndex = qualifiedName.lastIndexOf(".");
-    var type = qualifiedName.substring(separatorIndex + 1);
-    var lookup = r.objectNamed(type, (x) => null);
-    if (lookup != null) return lookup;
-    var name = qualifiedName.substring(0, separatorIndex);
-    // This is very ugly. The library name for an unnamed library is its URI.
-    // That can't be constructed as a Symbol, so we can't use findLibrary.
-    // So follow one or the other path depending if it has a colon, which we
-    // assume is in any URI and can't be in a Symbol.
-    if (name.contains(":")) {
-      var uri = Uri.parse(name);
-      var libMirror = currentMirrorSystem().libraries[uri];
-      var candidate = libMirror.declarations[new Symbol(type)];
-      return candidate is ClassMirror ? candidate : null;
-    } else {
-      var symbol = new Symbol(name);
-      var typeSymbol = new Symbol(type);
-      for (var libMirror in currentMirrorSystem().libraries.values) {
-        if (libMirror.simpleName != symbol) continue;
-        var candidate = libMirror.declarations[typeSymbol];
-        if (candidate != null && candidate is ClassMirror) return candidate;
-      }
-      return null;
-    }
-  }
-}
-
-/**
  * This provides an abstract superclass for writing your own rules specific to
  * a class. It makes some assumptions about behaviour, and so can have a
  * simpler set of methods that need to be implemented in order to subclass it.
- *
  */
 abstract class CustomRule extends SerializationRule {
   // TODO(alanknight): It would be nice if we could provide an implementation
@@ -468,8 +425,15 @@ abstract class CustomRule extends SerializationRule {
 
   extractState(instance, Function f, Writer w) {
     var state = getState(instance);
-    for (var each in values(state)) {
-      f(each);
+    if (state is Map) {
+      state.forEach((k, v) {
+        f(k);
+        f(v);
+      });
+    } else if (state is List) {
+      for (var each in state) {
+        f(each);
+      }
     }
     return state;
   }
@@ -484,16 +448,6 @@ abstract class CustomRule extends SerializationRule {
   // separately, so write it out for each object, even though they're all
   // expected to be the same length.
   bool get hasVariableLengthEntries => true;
-}
-
-/** A hard-coded rule for serializing Symbols. */
-class SymbolRule extends CustomRule {
-  bool appliesTo(instance, _) => instance is Symbol;
-  getState(instance) => [MirrorSystem.getName(instance)];
-  create(state) => new Symbol(state[0]);
-  void setState(symbol, state) {}
-  int get dataLength => 1;
-  bool get hasVariableLengthEntries => false;
 }
 
 /** A hard-coded rule for DateTime. */
@@ -578,4 +532,46 @@ class _LazyList extends ListBase {
   void _throw() {
     throw new UnsupportedError("Not modifiable");
   }
+}
+
+/**
+ * Abstract class for serializing things with no state.
+ */
+abstract class StatelessRule extends CustomRule {
+  getState(instance) => [];
+  void setState(symbol, state) {}
+  int get dataLength => 0;
+  bool get hasVariableLengthEntries => false;
+}
+
+/** A hard-coded rule for meta-serializing ListRules. */
+class ListRuleRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance.runtimeType == ListRule;
+  create(state) => new ListRule();
+}
+
+/** A hard-coded rule for meta-serializing MapRules. */
+class MapRuleRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance is MapRule;
+  create(state) => new MapRule();
+}
+
+class PrimitiveRuleRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance is PrimitiveRule;
+  create(state) => new PrimitiveRule();
+}
+
+class ListRuleEssentialRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance is ListRuleEssential;
+  create(state) => new ListRuleEssential();
+}
+
+class NamedObjectRuleRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance is NamedObjectRule;
+  create(state) => new NamedObjectRule();
+}
+
+class DateTimeRuleRule extends StatelessRule {
+  bool appliesTo(instance, _) => instance is DateTimeRule;
+  create(state) => new DateTimeRule();
 }

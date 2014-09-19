@@ -119,8 +119,7 @@ class SimpleMapFormat extends InternalMapFormat {
    * of [Reference] objects instead of the [Reference] so that the structure
    * can be serialized between isolates and json easily.
    */
-  void forAllStates(ReaderOrWriter w, bool predicate(value),
-               void transform(value)) {
+  void forAllStates(ReaderOrWriter w, bool predicate(value), transform(value)) {
     for (var eachRule in w.rules) {
       var ruleData = w.states[eachRule.number];
       for (var data in ruleData) {

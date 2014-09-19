@@ -197,7 +197,7 @@ class Writer implements ReaderOrWriter {
    * Return a list of [Reference] objects pointing to our roots. This will be
    * stored in the output under "roots" in the default format.
    */
-  List _rootReferences() => trace.roots.map(_referenceFor).toList();
+  List _rootReferences() => trace.roots.map(referenceFor).toList();
 
   /**
    * Given an object, return a reference for it if one exists. If there's
@@ -205,7 +205,7 @@ class Writer implements ReaderOrWriter {
    * step, all objects that should have a reference (roughly speaking,
    * non-primitives) can be relied on to have a reference.
    */
-  _referenceFor(object) {
+  referenceFor(object) {
     var result = references[object];
     return (result == null) ? object : result;
   }
@@ -617,6 +617,8 @@ class DesignatedRuleForObject {
   final Function rulePredicate;
   final target;
 
+  // TODO(alanknight): Using this with a CustomRule is very confusing,
+  // make it simpler.
   DesignatedRuleForObject(this.target, this.rulePredicate);
 
   List possibleRules(List rules) => rules.where(rulePredicate).toList();

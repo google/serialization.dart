@@ -25,7 +25,13 @@ dart --version
 pub get
 
 # Verify that the libraries are error free.
-dartanalyzer --fatal-warnings lib/serialization.dart test/serialization_test.dart
+dartanalyzer --fatal-warnings \
+  lib/serialization.dart \
+  lib/serialization_mirrors.dart \
+  test/serialization_test.dart \
+  test/serialization_mirrors_test.dart
 
 # Run the tests.
-dart test/serialization_test.dart && dart test/no_library_test.dart
+dart test/serialization_test.dart && \
+dart test/no_library_test.dart && \
+dart test/serialization_mirrors_test.dart

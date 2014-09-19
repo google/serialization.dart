@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of serialization;
+part of serialization_mirrors;
 
 // TODO(alanknight): Figure out how to reasonably separate out the things
 // that require reflection without making the API more awkward. Or if that is
@@ -196,12 +196,12 @@ class BasicRule extends SerializationRule {
   flatten(state, Writer writer) {
     if (state is List) {
       keysAndValues(state).forEach((index, value) {
-        state[index] = writer._referenceFor(value);
+        state[index] = writer.referenceFor(value);
       });
     } else {
       var newState = new Map();
       keysAndValues(state).forEach((key, value) {
-        newState[writer._referenceFor(key)] = writer._referenceFor(value);
+        newState[writer.referenceFor(key)] = writer.referenceFor(value);
       });
       return newState;
     }

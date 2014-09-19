@@ -16,8 +16,14 @@ approaches.
 
 ## Warning - Generated code size implications
 
-This library uses `dart:mirrors` which can significantly increase the size
-of the generated JavaScript. You can use `@MirrorsUsed` to try to mitigate
+There are two different libraries which can be imported. The default 
+library does not use `dart:mirrors`, so you need to write or generate
+SerializationRule classes for everything that can be serialized and
+make sure they're added to your Serialization instances. For a
+nicer experience you can import `serialization\_mirrors.dart`, but 
+this uses `dart:mirrors`, which can significantly increase the size of
+generated JavasScript when compiled with dart2js. 
+You can use `@MirrorsUsed` to try to mitigate
 this issue.
 
 ## Requests and bugs
