@@ -29,9 +29,11 @@ dartanalyzer --fatal-warnings \
   lib/serialization.dart \
   lib/serialization_mirrors.dart \
   test/serialization_test.dart \
-  test/serialization_mirrors_test.dart
+  test/serialization_mirrors_test.dart \
+  lib/transformer.dart
 
 # Run the tests.
 dart test/serialization_test.dart && \
 dart test/no_library_test.dart && \
-dart test/serialization_mirrors_test.dart
+dart test/serialization_mirrors_test.dart && \
+pub run test/transformer/transformer_test.dart
