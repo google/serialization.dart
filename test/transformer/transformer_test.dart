@@ -14,11 +14,14 @@ var thing1 = new Thing()
   ..howMany = 42
   ..things = ["one", "two", "three"];
 
-var thing2 = new OtherThing()
+var thing2 = new OtherThing.constructor()
   ..a = 1
   ..b = 2
   ..c = {"something" : "orother"}
   ..map = {"a" : "A"};
+
+var constructor =
+    new ThingWithConstructor("a", "b", "whatever")..settable = "c"..other = "d";
 
 main() {
 
@@ -63,5 +66,15 @@ main() {
     expect(read.things.first.name, "thing1");
     expect(read.things.last.map, {"a" : "A"});
 
+  });
+
+  test("Constructor", () {
+    var written = writer().write(constructor);
+    var read = reader().read(written);
+    expect(read is ThingWithConstructor, isTrue);
+    expect(read.pub, "b");
+    expect(read.other, "d");
+    expect(read.settable, "c");
+    expect(read.verifyPrivate("a"), isTrue);
   });
 }

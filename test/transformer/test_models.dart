@@ -13,7 +13,23 @@ class Thing {
 }
 
 class OtherThing {
+  OtherThing.constructor();
   int a, b;
   var c;
   Map map;
+}
+
+class ThingWithConstructor {
+  var _priv;
+  var pub;
+  var other;
+  var _settable;
+  ThingWithConstructor(this._priv, this.pub, notAField, [somethingElse]) {
+    print("notAField = $notAField");
+  }
+
+  get priv => _priv;
+  get settable => _settable;
+  set settable(x) => _settable = x;
+  verifyPrivate(x) => _priv == x;
 }

@@ -1,3 +1,8 @@
+## 0.10.1
+
+  * Adds a transformer that can generate serialization rules for simple
+    classes.
+
 ## 0.10.0
 
   * BREAKING CHANGE: serialization.dart no longer imports dart:mirrors by
