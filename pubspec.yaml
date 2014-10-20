@@ -1,5 +1,5 @@
 name: serialization
-version: 0.10.1
+version: 0.10.2
 author: Alan Knight <alanknight@google.com>
 description: Provide a serialization facility for Dart objects.
 homepage: https://github.com/google/serialization.dart
@@ -13,3 +13,6 @@ dev_dependencies:
 transformers:
   - serialization :
       $include: ["test/transformer/test_models.dart"]
+  - serialization : 
+      $include: ["test/transformer/test_models_for_maps.dart"]
+      format: "maps"

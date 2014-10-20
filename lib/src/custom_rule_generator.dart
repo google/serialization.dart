@@ -60,7 +60,7 @@ class CustomRuleGenerator {
 
   String get collectionStart => isListFormat ? '[' : '{';
   String get collectionEnd => isListFormat ? ']' : '}';
-  nameInQuotes(field) => isListFormat ? '' : "'$field' : ";
+  nameInQuotes(field) => isListFormat ? '' : "'${field.publicName}' : ";
 
   /// Return something we can use to get the value for the field named
   /// [field] out of the state.
@@ -71,7 +71,7 @@ class CustomRuleGenerator {
   /// not found, we check for a corresponding public getter.
   deref(Field field) {
     if (!isListFormat) {
-      return "'$field'";
+      return "'${field.publicName}'";
     } else {
       return allFields.indexOf(field);
     }
@@ -109,12 +109,12 @@ class $ruleName extends CustomRule {
 
   /// String for the internals of the [getState()] method.
   String get getFields => allFields.map((field) =>
-       "    ${nameInQuotes(field)}instance.${field.name}").join(",\n");
+       "    ${nameInQuotes(field)}instance.${field.publicName}").join(",\n");
 
   /// String for the internals of the [setState()] method.
   String get setFields => individuallySetFields
       .map((field) =>
-          "    instance.${field.name} = " "state[${deref(field)}]")
+          "    instance.${field.publicName} = " "state[${deref(field)}]")
       .join(";\n");
 
   /// The bottom part of the SerializationRule class definition.
@@ -175,9 +175,10 @@ class $ruleName extends CustomRule {
   /// All public constructors for the target class.
   List<ConstructorDeclaration> get constructors {
     if (_constructors != null) return _constructors;
-    _constructors = _declaration.members.where(
+    var filtered = _declaration.members.where(
         (each) => each is ConstructorDeclaration &&
-            ((each.name == null) || !each.name.name.startsWith('_'))).toList();
+            ((each.name == null) || !each.name.name.startsWith('_')));
+    _constructors = new List<ConstructorDeclaration>.from(filtered);
     return _constructors;
   }
   var _constructors;
@@ -214,8 +215,8 @@ class $ruleName extends CustomRule {
   List<Field> get constructorParameters =>
       shortestConstructor == null ?
           [] :
-          shortestConstructor.parameters.parameters.map(
-              (each) => new Field.constructor(each.identifier.name));
+          new List<Field>.from(shortestConstructor.parameters.parameters.map(
+              (each) => new Field.constructor(each.identifier.name)));
 
   /// All fields which are not set in the constructor.
   List<Field> get individuallySetFields =>

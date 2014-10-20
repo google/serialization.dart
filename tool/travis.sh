@@ -36,4 +36,5 @@ dartanalyzer --fatal-warnings \
 dart test/serialization_test.dart && \
 dart test/no_library_test.dart && \
 dart test/serialization_mirrors_test.dart && \
-pub run test/transformer/transformer_test
+pub run test/transformer/transformer_test && \
+pub run test/transformer/transformer_maps_test

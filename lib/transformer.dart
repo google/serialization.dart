@@ -64,7 +64,7 @@
 ///     transformers:
 ///       - serialization :
 ///         $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
-///         format: <lists|maps>
+///         format: <"lists"|"maps">
 ///
 /// For each library 'foo' listed in the $include section this will
 /// generate a `foo_serialization_rules.dart` library with serialization

@@ -1,37 +1,79 @@
-# A general-purpose serialization facility for Dart Objects.
+# General serialization for Dart objects.
 
 [![Build Status](https://travis-ci.org/google/serialization.dart.svg?branch=master)](https://travis-ci.org/google/serialization.dart)
 
-This provides the ability to save and restore objects to pluggable
-Formats using pluggable Rules.
+Save and restore objects flexibly.
 
-These rules can use mirrors or be hard-coded. The main principle
-is using only public APIs on the serialized objects, so changes to the
-internal representation do not break previous serializations. It also handles
-cycles, different representations, filling in known objects on the 
-receiving side, and other issues. It is not as much intended for
-APIs using JSON to pass acyclic structures without class information,
-and is fairly heavweight and expensive for doing that compared to simpler
-approaches.
+This can serialize and de-serialize objects to multiple different
+formats. It is most useful if you have Dart on both ends, rather
+than needing to communicate with an external system. It can handle
+cycles, inheritance, getters and setters, private or final fields set
+via constructors, objects
+serialized in different ways at different times, and other complex
+options. It can handle serializing acyclic objects with only public
+fields to a simple JSON format, but might be more heavyweight than is
+necessary if that's the only requirement.
 
-## Warning - Generated code size implications
+This has no privileged access to object representations, so objects
+are accessed and created according to their public APIs. As a result,
+serializations from older versions where the internal representation
+has changed can still be read as long as the public API is still available.
 
-There are two different libraries which can be imported. The default 
-library does not use `dart:mirrors`, so you need to write or generate
-SerializationRule classes for everything that can be serialized and
-make sure they're added to your Serialization instances. For a
-nicer experience you can import `serialization\_mirrors.dart`, but 
-this uses `dart:mirrors`, which can significantly increase the size of
-generated JavasScript when compiled with dart2js. 
-You can use `@MirrorsUsed` to try to mitigate
-this issue.
+The way an object's state is read and written is defined by
+SerializationRules. These can be implemented in various ways. The
+easiest to use is using mirrors to find the members. Rules can also be
+hand-written or, for relatively simple classes, generated using a
+transformer.
+
+## Usage
+
+Import either
+
+    import "package:serialization/serialization.dart"
+
+or
+
+    import "package:serialization/serialization_mirrors.dart"
+
+depending on whether or not you want the mirrored rules. These are
+more convenient, but cause increased code size in dartj2s.
+
+To use the transformer, include something in your pubspec like
+
+     transformers:
+       - serialization :
+         $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
+
+and set up the generated rules in a Serialization instance, on which
+you can then call write().
+
+    import 'package:my_package/stuff_serialization_rules.dart' as foo;
+     ...
+     var serialization = new Serialization();
+     foo.rules.values.forEach(serialization.addRule);
+     ...
+     sendToClient(serialization.write(somePerson));
+
+and on the client, do something like
+
+     p = readFromServer(personId).then((data) => serialization.read(data));
+
+If you're using the mirrored rules, then you can just tell the
+serialization which classes you're interested in.
+
+      var serialization = new Serialization()
+        ..addRuleFor(Address);
+      serialization.write(address);
 
 ## Requests and bugs
 
-Please file feature requests and bugs via the [GitHub Issue Tracker][issues].
+Please file feature requests and bugs via the
+[GitHub Issue Tracker][issues]. This is licensed under the
+[same license as Dart][LICENSE]
 
 ## Disclaimer
 
 This is not an official Google project.
 
 [issues]: https://github.com/google/serialization.dart/issues
+[LICENSE]: https://github.com/google/serialization.dart/blob/master/LICENSE

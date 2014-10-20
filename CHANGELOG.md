@@ -1,3 +1,9 @@
+## 0.10.2
+
+  * Update README
+
+  * Fixes for transformer when generating maps, test that option properly.
+
 ## 0.10.1
 
   * Adds a transformer that can generate serialization rules for simple
