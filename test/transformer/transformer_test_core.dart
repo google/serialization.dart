@@ -18,21 +18,21 @@ var thing2 = new OtherThing.constructor()
 var constructor =
     new ThingWithConstructor("a", "b", "whatever")..settable = "c"..other = "d";
 
+Format format = const SimpleJsonFormat(storeRoundTripInfo: true);
+
 main() {
+  // Create separate serializations for reading and writing to make sure
+  // nothing relies on common state.
+  var serialization1 =
+      new Serialization(format: format)..addRules(rules.values);
+  var serialization2 =
+      new Serialization(format: format)..addRules(rules.values);
 
-  var serialization1 = new Serialization();
-  rules.values.forEach(serialization1.addRule);
-  writer() =>
-    serialization1.newWriter(new SimpleJsonFormat(storeRoundTripInfo: true));
-
-  var serialization2 = new Serialization();
-  rules.values.forEach(serialization2.addRule);
-  reader() =>
-      serialization2.newReader(new SimpleJsonFormat(storeRoundTripInfo: true));
+  formatSpecificTests(serialization1, serialization2);
 
   test("Write and Read Thing", () {
-    var written = writer().write(thing1);
-    var read = reader().read(written);
+    var written = serialization1.write(thing1);
+    var read = serialization2.read(written);
     expect(read is Thing, isTrue);
     expect(read.name, "thing1");
     expect(read.howMany, 42);
@@ -40,8 +40,8 @@ main() {
   });
 
   test("Write and Read Other Thing", () {
-    var written = writer().write(thing2);
-    var read = reader().read(written);
+    var written = serialization1.write(thing2);
+    var read = serialization2.read(written);
     expect(read is OtherThing, isTrue);
     expect(read.a, 1);
     expect(read.b, 2);
@@ -54,18 +54,17 @@ main() {
       ..name = "nested"
       ..howMany = 1
       ..things = [thing1, thing2];
-    var written = writer().write(nested);
-    var read = reader().read(written);
+    var written = serialization1.write(nested);
+    var read = serialization2.read(written);
     expect(read.things.first is Thing, isTrue);
     expect(read.things.last is OtherThing, isTrue);
     expect(read.things.first.name, "thing1");
     expect(read.things.last.map, {"a" : "A"});
-
   });
 
   test("Constructor", () {
-    var written = writer().write(constructor);
-    var read = reader().read(written);
+    var written = serialization1.write(constructor);
+    var read = serialization2.read(written);
     expect(read is ThingWithConstructor, isTrue);
     expect(read.pub, "b");
     expect(read.other, "d");

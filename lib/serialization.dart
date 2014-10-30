@@ -228,6 +228,12 @@ class Serialization {
   Map<String, dynamic> namedObjects = {};
 
   /**
+   * The default [Format] that this serialization will use for [read] and
+   * [write] operations.
+   */
+  Format defaultFormat;
+
+  /**
    * When we write out data using this serialization, should we also write
    * out a description of the rules. This is on by default unless using
    * CustomRule subclasses, in which case it requires additional setup and
@@ -268,8 +274,8 @@ class Serialization {
    * Creates a new serialization with a default set of rules for primitives
    * and lists.
    */
-  factory Serialization() =>
-    new Serialization.blank()
+  factory Serialization({Format format}) =>
+    new Serialization.blank(format: format)
       ..addDefaultRules();
 
   /**
@@ -277,11 +283,12 @@ class Serialization {
    * use for this is if we are reading self-describing serialized data and
    * will populate the rules from that data.
    */
-  factory Serialization.blank()
-    => new Serialization.forRules(new List<SerializationRule>());
+  factory Serialization.blank({Format format})
+    => new Serialization.forRules(new List<SerializationRule>(),
+        defaultFormat: format);
 
   /** Internal constructor. */
-  Serialization.forRules(List<SerializationRule> rules) :
+  Serialization.forRules(List<SerializationRule> rules, {this.defaultFormat}) :
     this._rules = rules,
     this.rules = new UnmodifiableListView(rules);
 
@@ -326,6 +333,15 @@ class Serialization {
   }
 
   /**
+   * Add multiple [SerializationRule]s.
+   */
+  void addRules(Iterable rules) {
+    for (var rule in rules) {
+      addRule(rule);
+    }
+  }
+
+  /**
    * This writes out an object graph rooted at [object] and returns the result.
    * The [format] parameter determines the form of the result. The default
    * format is [SimpleMapFormat] and returns a Map.
@@ -339,7 +355,7 @@ class Serialization {
    * want to do something more complex with the writer than just returning
    * the final result.
    */
-  Writer newWriter([Format format]) => new Writer(this, format);
+  Writer newWriter([Format format]) => new Writer(this, _formatToUse(format));
 
   /**
    * Read the serialized data from [input] and return the root object
@@ -359,11 +375,18 @@ class Serialization {
   }
 
   /**
+   * Return the format we should use when creating a new [Reader]/[Writer].
+   * If [format] is specified, we use it. Otherwise we use [defaultFormat]. If
+   * [defaultFormat] is also null, then the [Reader]/[Writer] will use its own
+   * global default.
+   */
+  Format _formatToUse(Format format) => format == null ? defaultFormat : format;
+  /**
    * Return a new [Reader] object for this serialization. This is useful if
    * you want to do something more complex with the reader than just returning
    * the final result.
    */
-  Reader newReader([Format format]) => new Reader(this, format);
+  Reader newReader([Format format]) => new Reader(this, _formatToUse(format));
 
   /**
    * Return the list of SerializationRule that apply to [object]. For

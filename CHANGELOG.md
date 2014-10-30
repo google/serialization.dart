@@ -1,3 +1,8 @@
+## 0.10.3
+  * Clean up setup for serialization. Adds `addRules`,
+    `defaultFormat`, and a named `format` parameter to
+    the constructors to set `defaultFormat`.
+	
 ## 0.10.2
 
   * Update README

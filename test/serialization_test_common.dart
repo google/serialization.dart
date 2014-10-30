@@ -208,11 +208,10 @@ commonTests() {
     // a Map. The original idea of CustomRules was that they always returned
     // Lists, but that doesn't work as well with a flat format. Something needs
     // to be generalized to be more the way BasicRule is handling this.
-    var s = newSerializationList();
     for (var eachFormat in formats) {
-      var w = s.newWriter(eachFormat);
-      var output = w.write({"stuff" : p1});
-      var result = s.read(output, format: w.format);
+      var s = newSerializationList()..defaultFormat = eachFormat;
+      var output = s.write({"stuff" : p1});
+      var result = s.read(output, format: eachFormat);
       var p2 = result["stuff"];
       expect(p2.name, "Alice");
       var a2 = p2.address;

@@ -94,11 +94,11 @@ void main() {
 
   test("Straight JSON format, nested objects", () {
     var p1 = new Person()..name = 'Alice'..address = a1;
-    var s = new Serialization()..selfDescribing = false;
+    var format = const SimpleJsonFormat(storeRoundTripInfo: true);
+    var s = new Serialization(format: format)..selfDescribing = false;
     var addressRule = s.addRule(new AddressRuleMap());
     var personRule = s.addRule(new PersonRuleMap());
-    var writer = s.newWriter(const SimpleJsonFormat(storeRoundTripInfo: true));
-    var out = JSON.encode(writer.write(p1));
+    var out = JSON.encode(s.write(p1));
     var reconstituted = JSON.decode(out);
     var expected = {
       "name" : "Alice",
