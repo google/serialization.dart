@@ -147,12 +147,15 @@
  * and a simple JSON format that produces output more suitable for talking to
  * services that expect JSON in a predefined format. Examples of these are
  *
- *      Map output = serialization.write(address, new SimpleMapFormat());
- *      List output = serialization.write(address, new SimpleFlatFormat());
- *      var output = serialization.write(address, new SimpleJsonFormat());
+ *      Map output = serialization.write(address, format: new SimpleMapFormat());
+ *      List output = serialization.write(address, format: new SimpleFlatFormat());
+ *      var output = serialization.write(address, format: new SimpleJsonFormat());
  * Or, using a [Writer] explicitly
  *      var writer = serialization.newWriter(new SimpleFlatFormat());
  *      List output = writer.write(address);
+ * 
+ * It's also possible to create a serialization with a default format.
+ *     Serialization s = new Serialization(format: const SimpleJsonFormat());
  *
  * These representations are not yet considered stable.
  *

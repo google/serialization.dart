@@ -38,14 +38,38 @@ or
 depending on whether or not you want the mirrored rules. These are
 more convenient, but cause increased code size in dartj2s.
 
-To use the transformer, include something in your pubspec like
+To use the transformer, include something in the pubspec like
 
      transformers:
        - serialization :
          $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
 
-and set up the generated rules in a Serialization instance, on which
-you can then call write().
+Then, set up the generated rules in a Serialization instance, and then call
+write(). The serialization rules will be named as
+the name of the model file with `_serialization_rules` appended to it,
+so in the case of `stuff.dart`, `stuff_serialization_rules.dart`, in
+the same directory as the original.
+
+Normally you won't ever see these files, because the
+transformer creates it on the fly and it is sent directly to pub serve
+or to dart2js without ever being written to disk.
+To see the generated code, run pub build in debug mode, e.g.
+if there is a program in the package's `bin` directory to run something
+using these files, then
+
+    pub build --mode=debug bin
+
+would generate the code for that, and also log which
+files were generated, in the form
+
+    Generated serialization rules in my_package|lib/stuff_serialization_rules.dart
+
+It's also possible to run the transformer's code outside of the
+transformer, which is helpful for debugging or to use the code in a
+different way. See the `test/transformer/generate_standalone.dart' for
+an example of that.
+
+The bin directory code would look something like.
 
     import 'package:my_package/stuff_serialization_rules.dart' as foo;
      ...
@@ -58,12 +82,17 @@ and on the client, do something like
 
      p = readFromServer(personId).then((data) => serialization.read(data));
 
-If you're using the mirrored rules, then you can just tell the
-serialization which classes you're interested in.
+Alternatively, if using the mirrored rules, just tell the
+serialization which classes might be serialized.
 
       var serialization = new Serialization()
+	    ..addRuleFor(Person);
         ..addRuleFor(Address);
       serialization.write(address);
+
+For more concrete examples, see the `test` directory, and particularly
+for examples of the transformer it may be useful to look at the
+`pubspec.yaml` for this package, and the`test/transformer` directory.
 
 ## Requests and bugs
 
