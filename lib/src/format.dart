@@ -166,15 +166,22 @@ class SimpleMapFormat extends InternalMapFormat {
 }
 
 /**
- * A format for "normal" [json] representation of objects. It stores
+ * A format for "normal" [json] representation of objects.
+ *
+ * It stores
  * the fields of the objects as nested maps, and doesn't allow cycles. This can
  * be useful in talking to existing APIs that expect [json] format data. The
  * output will be either a simple object (string, num, bool), a List, or a Map,
  * with nesting of those.
+ *
  * Note that since the classes of objects aren't normally stored, this isn't
  * enough information to read back the objects. However, if the
  * If the [storeRoundTripInfo] field of the format is set to true, then this
  * will store the rule number along with the data, allowing reconstruction.
+
+ * For an example using this to write out JSON, including serializing a 
+ * [DateTime] to a string format, see the [test/transformer directory].
+ * (https://github.com/google/serialization.dart/tree/master/test/transformer)
  */
 class SimpleJsonFormat extends SimpleMapFormat {
 

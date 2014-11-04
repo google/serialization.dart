@@ -34,3 +34,10 @@ class ThingWithConstructor {
   set settable(x) => _settable = x;
   verifyPrivate(x) => _priv == x;
 }
+
+/// Exercise a DateTime which we want to represent in a string format for
+/// external consumption.
+class ThingWithDate {
+  String s;
+  DateTime d;
+}

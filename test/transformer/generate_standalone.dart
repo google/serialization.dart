@@ -21,4 +21,13 @@ main() {
       originalImport: 'test_models.dart');
   var outFile = new File("test_models_serialization_rules.dart");
   outFile.writeAsStringSync(generated);
+
+  contents = new File("test_models_for_maps.dart").readAsStringSync();
+  generated = generateCustomRulesFor(
+      contents,
+      listFormat : false,
+      libraryName: 'test_models_for_maps',
+      originalImport: 'test_models_for_maps.dart');
+  outFile = new File("test_models_for_maps_serialization_rules.dart");
+  outFile.writeAsStringSync(generated);
 }
