@@ -22,7 +22,7 @@ class BasicRule extends SerializationRule {
    * The [type] is used both to find fields and to verify if the object is one
    * that we handle.
    */
-  final ClassMirror type;
+  final ClassView type; // ##### Can we do without this?    ### Also, how do we separate simple from complex.
 
   /** Used to create new objects when reading. */
   final Constructor constructor;
@@ -41,12 +41,15 @@ class BasicRule extends SerializationRule {
   // Issue 6282.
   // TODO(alanknight) Does the comment for this format properly?
   /**
-   * Create this rule. Right now the user is obliged to pass a ClassMirror,
-   * but once we allow class literals (Issue 6282) it will support that. The
-   * other parameters can all be left as null, and are optional on the
+   * Create a serialization rule that uses mirrors.
+   *
+   * The paramters other than the type can be null, in which case they
+   * are computed. They are optional on the
    * [Serialization.addRule] method which is the normal caller for this.
-   * [constructorName] is the constructor, if not the default.
-   * [constructorFields] are the fields required to call the constructor, which
+   * The [constructorName] is the constructor, and if omitted we use the
+   * default.
+   * The [constructorFields] are the fields required to call the constructor,
+   * which
    *   is the essential state. They don't have to be actual fields,
    *   getter/setter pairs or getter/constructor pairs are fine. Note that
    *   the constructorFields do not need to be strings, they can be arbitrary
@@ -58,7 +61,7 @@ class BasicRule extends SerializationRule {
    * [excludeFields] lets you tell it to find the fields automatically, but
    *   omit some that would otherwise be included.
    */
-  factory BasicRule(ClassMirror type, String constructorName,
+  factory BasicRule(SimpleClassView type, String constructorName,
       List constructorFields, List regularFields, List excludeFields) {
 
     var fields = new _FieldList(type);
@@ -181,7 +184,7 @@ class BasicRule extends SerializationRule {
    */
   extractState(object, Function callback, Writer w) {
     var result = createStateHolder();
-    var mirror = reflect(object);
+    var mirror = const SimpleSerializable().reflect(object);
 
     keysAndValues(_fields).forEach(
         (index, field) {
@@ -239,7 +242,7 @@ class BasicRule extends SerializationRule {
    * [object], resolving references in the context of [reader].
    */
   inflateNonEssential(rawState, object, Reader reader) {
-    InstanceMirror mirror = reflect(object);
+    var mirror = const Serializable().reflect(object); // ### TODO(alanknight): How do we handle escalating to a mirror that can do invoke without requiring it all the time?
     var state = makeIndexableByNumber(rawState);
     _fields.forEachRegularField( (_Field field) {
       var value = reader.inflateReference(state[field.index]);
@@ -252,7 +255,7 @@ class BasicRule extends SerializationRule {
    * this is true if the type mirrors are the same.
    */
   // TODO(alanknight): This seems likely to be slow. Verify. Other options?
-  bool appliesTo(object, Writer w) => reflect(object).type == type;
+  bool appliesTo(object, Writer w) => type.matches(object);
 
   bool get hasVariableLengthEntries => false;
 
@@ -265,10 +268,7 @@ class BasicRule extends SerializationRule {
   // TODO(alanknight): The framework should be resilient if there are fields
   // it expects that are missing, either for the case of de-serializing to a
   // different definition, or for the case that tree-shaking has removed state.
-  // TODO(alanknight): This, and other places, rely on synchronous access to
-  // mirrors. Should be changed to use a synchronous API once one is available,
-  // or to be async, but that would be extremely ugly.
-  _value(InstanceMirror mirror, _Field field) => field.valueIn(mirror);
+  _value(mirror, _Field field) => field.valueIn(mirror);
 }
 
 /**
@@ -308,8 +308,8 @@ abstract class _Field implements Comparable<_Field> {
    */
   static bool _isReallyAField(value, _FieldList fieldList) {
     var symbol = _asSymbol(value);
-    return hasField(symbol, fieldList.mirror) ||
-        hasGetter(symbol, fieldList.mirror);
+    return const Serializable().hasField(symbol, fieldList.mirror) ||
+        const Serializable().hasGetter(symbol, fieldList.mirror);
   }
 
   /** Private constructor. */
@@ -319,7 +319,7 @@ abstract class _Field implements Comparable<_Field> {
    * Extracts the value for the field that this represents from the instance
    * mirrored by [mirror] and return it.
    */
-  valueIn(InstanceMirror mirror);
+  valueIn(mirror);
 
   // TODO(alanknight): Is this the right name, or is it confusing that essential
   // is not the inverse of regular.
@@ -334,7 +334,7 @@ abstract class _Field implements Comparable<_Field> {
   bool get isEssential => usedInConstructor;
 
   /** Set the [value] of our field in the given mirrored [object]. */
-  void setValue(InstanceMirror object, value);
+  void setValue(object, value);
 
   // Because [x] may not be a named field, we compare the toString. We don't
   // care that much where constants come in the sort order as long as it's
@@ -366,7 +366,7 @@ class _NamedField extends _Field {
   }
 
   String get name =>
-      _name == null ? _name = MirrorSystem.getName(nameSymbol) : _name;
+      _name == null ? _name = const SymbolNameView().name(nameSymbol) : _name;
 
   operator ==(x) => x is _NamedField && (nameSymbol == x.nameSymbol);
   int get hashCode => name.hashCode;
@@ -379,18 +379,18 @@ class _NamedField extends _Field {
   bool get isEssential => super.isEssential || customSetter != null;
 
   /** Set the [value] of our field in the given mirrored [object]. */
-  void setValue(InstanceMirror object, value) {
+  void setValue(object, value) {
     setter(object, value);
   }
 
-  valueIn(InstanceMirror mirror) => mirror.getField(nameSymbol).reflectee;
+  valueIn(mirror) => mirror.getField(nameSymbol);
 
   /** Return the function to use to set our value. */
   Function get setter =>
       (customSetter != null) ? customSetter : defaultSetter;
 
   /** The default setter function. */
-  void defaultSetter(InstanceMirror object, value) {
+  void defaultSetter(SimpleInstanceView object, value) {
     object.setField(nameSymbol, value);
   }
 
@@ -411,7 +411,7 @@ class _ConstantField extends _Field {
   operator ==(x) => x is _ConstantField && (value == x.value);
   int get hashCode => value.hashCode;
   String toString() => 'ConstantField($value)';
-  valueIn(InstanceMirror mirror) => value;
+  valueIn(mirror) => value;
 
   /** We cannot be set, so setValue is a no-op. */
   void setValue(InstanceMirror object, value) {}
@@ -445,7 +445,7 @@ class _FieldList extends IterableBase<_Field> {
   List<Symbol> _excludedFieldNames = const [];
 
   /** The mirror we will use to compute the fields. */
-  final ClassMirror mirror;
+  final mirror;
 
   /** Cached, sorted list of fields. */
   List<_Field> _contents;
@@ -567,15 +567,15 @@ class _FieldList extends IterableBase<_Field> {
    * that are listed in the constructor fields.
    */
   void figureOutFields() {
-    Iterable names(Iterable<DeclarationMirror> mirrors) =>
+    Iterable names(Iterable<DeclarationView> mirrors) =>
         mirrors.map((each) => each.simpleName).toList();
 
     if (!_shouldFigureOutFields || !regularFields().isEmpty) return;
-    var fields = publicFields(mirror);
-    var getters = publicGetters(mirror);
+    var fields = const Serializable().publicFields(mirror);
+    var getters = const Serializable().publicGetters(mirror);
     var gettersWithSetters = getters.where( (each)
         => mirror.declarations[
-            new Symbol("${MirrorSystem.getName(each.simpleName)}=")] != null);
+            new Symbol("${const SymbolNameView().name(each.simpleName)}=")] != null);
     var gettersThatMatchConstructor = getters.where((each)
         => (named(each.simpleName) != null) &&
             (named(each.simpleName).usedInConstructor)).toList();
@@ -591,7 +591,7 @@ class _FieldList extends IterableBase<_Field> {
  *  Provide a typedef for the setWith argument to setFieldWith. It would
  * be nice if we could put this closer to the definition.
  */
-typedef SetWithFunction(InstanceMirror m, object);
+typedef SetWithFunction(m, object);
 
 /**
  * This represents a constructor that is to be used when re-creating a
@@ -599,7 +599,7 @@ typedef SetWithFunction(InstanceMirror m, object);
  */
 class Constructor {
   /** The mirror of the class we construct. */
-  final ClassMirror type;
+  final SimpleClassView type;
 
   /** The name of the constructor to use, if not the default constructor.*/
   String name;

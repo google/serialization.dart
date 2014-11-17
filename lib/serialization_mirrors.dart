@@ -15,6 +15,7 @@ export 'package:serialization/serialization.dart';
 import 'src/serialization_helpers.dart';
 import 'src/mirrors_helpers.dart';
 import 'dart:collection';
+import 'dart:mirrors';
 
 part 'src/basic_rule.dart';
 
@@ -71,7 +72,7 @@ class Serialization extends s.Serialization {
         List<String> excludeFields}) {
 
     var rule = new BasicRule(
-        turnInstanceIntoSomethingWeCanUse(instanceOrType),
+        const Serializable().turnInstanceIntoSomethingWeCanUse(instanceOrType),
         constructor, constructorFields, fields, excludeFields);
     addRule(rule);
     return rule;
@@ -126,9 +127,9 @@ class Serialization extends s.Serialization {
  * [Serialization.read].
  */
 class MirrorRule extends NamedObjectRule {
-  bool appliesTo(object, Writer writer) => object is DeclarationMirror;
+  bool appliesTo(object, Writer writer) => object is DeclarationMirror || object is ClassView;
 
-  String nameFor(DeclarationMirror object, Writer writer) =>
+  String nameFor(object, Writer writer) =>
       MirrorSystem.getName(object.qualifiedName);
 
   inflateEssential(state, Reader r) {
@@ -148,14 +149,14 @@ class MirrorRule extends NamedObjectRule {
       var uri = Uri.parse(name);
       var libMirror = currentMirrorSystem().libraries[uri];
       var candidate = libMirror.declarations[new Symbol(type)];
-      return candidate is ClassMirror ? candidate : null;
+      return candidate is ClassMirror ? const Serializable().reflectClass(candidate.reflectedType) : null;
     } else {
       var symbol = new Symbol(name);
       var typeSymbol = new Symbol(type);
       for (var libMirror in currentMirrorSystem().libraries.values) {
         if (libMirror.simpleName != symbol) continue;
         var candidate = libMirror.declarations[typeSymbol];
-        if (candidate != null && candidate is ClassMirror) return candidate;
+        if (candidate != null && candidate is ClassMirror) return const Serializable().reflectClass(candidate.reflectedType);
       }
       return null;
     }
