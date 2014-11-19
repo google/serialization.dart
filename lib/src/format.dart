@@ -349,7 +349,7 @@ class SimpleFlatFormat extends Format {
    */
   List generateOutput(Writer w) {
     var result = new List(3);
-    var flatData = newFlatData();
+    var flatData = [];
     for (var eachRule in w.rules) {
       var ruleData = w.states[eachRule.number];
       flatData.add(ruleData.length);
@@ -361,8 +361,6 @@ class SimpleFlatFormat extends Format {
     w._rootReferences().forEach((x) => x.writeToList(result[2]));
     return result;
   }
-
-  newFlatData() => [];
 
   /**
    * Writes the data from [rule] into the [target] list.
