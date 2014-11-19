@@ -179,7 +179,7 @@ class SimpleMapFormat extends InternalMapFormat {
  * If the [storeRoundTripInfo] field of the format is set to true, then this
  * will store the rule number along with the data, allowing reconstruction.
 
- * For an example using this to write out JSON, including serializing a 
+ * For an example using this to write out JSON, including serializing a
  * [DateTime] to a string format, see the [test/transformer directory].
  * (https://github.com/google/serialization.dart/tree/master/test/transformer)
  */
@@ -349,7 +349,7 @@ class SimpleFlatFormat extends Format {
    */
   List generateOutput(Writer w) {
     var result = new List(3);
-    var flatData = [];
+    var flatData = newFlatData();
     for (var eachRule in w.rules) {
       var ruleData = w.states[eachRule.number];
       flatData.add(ruleData.length);
@@ -361,6 +361,8 @@ class SimpleFlatFormat extends Format {
     w._rootReferences().forEach((x) => x.writeToList(result[2]));
     return result;
   }
+
+  newFlatData() => [];
 
   /**
    * Writes the data from [rule] into the [target] list.

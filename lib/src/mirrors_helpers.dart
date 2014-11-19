@@ -69,19 +69,7 @@ class Serializable extends SimpleSerializable {
     return hasField(name, superclass);
   }
 
-  /**
-   * Return a list of all the public getters of a class which have corresponding
-   * setters.
-   */
-  Iterable<MethodMirror> publicGettersWithMatchingSetters(ClassMirror mirror) {
-    var declarations = mirror.declarations;
-    return publicGetters(mirror).where((each) =>
-      // TODO(alanknight): Use new Symbol here?
-      declarations["${each.simpleName}="] != null);
-  }
-
-
-  reflectClass(thing) => new ClassView()..type = mirrors.reflectClass(thing);
+  reflectClass(type) => new ClassView(type);
 
 }
 
@@ -98,35 +86,51 @@ class SimpleSerializable {
     return reflectClass(x.runtimeType);
   }
 
-  reflectClass(thing) => new SimpleClassView()..type = mirrors.reflectClass(thing);
-  reflect(thing) => new InstanceView()..mirror = mirrors.reflect(thing);
+  reflectClass(Type type) => new SimpleClassView(type);
+  reflect(thing) => new InstanceView(thing);
 }
 
 
 class SimpleClassView {
-  mirrors.ClassMirror type;
-  matches(object) => mirrors.reflect(object).type == type;
-  get simpleName => type.simpleName;
+  mirrors.ClassMirror _type;
+  SimpleClassView(Type type) : _type = mirrors.reflectClass(type);
+
+  matches(object) => mirrors.reflect(object).type == _type;
+  get simpleName => _type.simpleName;
   newInstance(Symbol constructorName, List parameters) {
-    return type.newInstance(constructorName, parameters);
+    return _type.newInstance(constructorName, parameters);
   }
-  operator ==(x) => type == x.type;
+  operator ==(x) => _type == x._type;
 }
 
+
+class InstanceView {
+  mirrors.InstanceMirror _mirror;
+  InstanceView(thing) : _mirror = mirrors.reflect(thing);
+
+  getField(Symbol name) => _mirror.getField(name).reflectee;
+  setField(Symbol name, value) => _mirror.setField(name, value);
+  get reflectee => _mirror.reflectee;
+}
+
+
 class ClassView extends SimpleClassView {
+  ClassView(Type type) : super(type);
+
   Map<Symbol, DeclarationView> get declarations =>
       new Map.fromIterables(
-          type.declarations.keys,
-          type.declarations.values
+          _type.declarations.keys,
+          _type.declarations.values
               .map((x) => new DeclarationView()
                   ..symbol = x.simpleName
                   ..mirror = x));
 
   ClassView get superclass =>
-      type.superclass == null ?
+      _type.superclass == null ?
           null :
-          (new ClassView()..type = type.superclass);
-  get qualifiedName => type.qualifiedName;
+          (new ClassView(_type.superclass.reflectedType));
+
+  get qualifiedName => _type.qualifiedName;
 }
 
 class DeclarationView {
@@ -140,17 +144,6 @@ class DeclarationView {
   bool get isMethod => mirror is mirrors.MethodMirror;
   bool get isGetter => (mirror as mirrors.MethodMirror).isGetter;
   Symbol get simpleName => mirror.simpleName;
-
-}
-
-class SimpleInstanceView {
-  mirrors.InstanceMirror mirror;
-  getField(Symbol name) => mirror.getField(name).reflectee;
-  setField(Symbol name, value) => mirror.setField(name, value);
-}
-
-class InstanceView extends SimpleInstanceView {
-  get reflectee => mirror.reflectee;
 }
 
 class SymbolNameView {

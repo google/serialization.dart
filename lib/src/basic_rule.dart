@@ -390,7 +390,7 @@ class _NamedField extends _Field {
       (customSetter != null) ? customSetter : defaultSetter;
 
   /** The default setter function. */
-  void defaultSetter(SimpleInstanceView object, value) {
+  void defaultSetter(InstanceView object, value) {
     object.setField(nameSymbol, value);
   }
 
