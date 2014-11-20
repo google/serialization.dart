@@ -348,21 +348,31 @@ class SimpleFlatFormat extends Format {
    * primitives.
    */
   List generateOutput(Writer w) {
-    var result = new List(3);
-    var flatData = newFlatData();
+    var flatData = newResultList();
     for (var eachRule in w.rules) {
       var ruleData = w.states[eachRule.number];
       flatData.add(ruleData.length);
       writeStateInto(eachRule, ruleData, flatData);
     }
-    result[0] = w.serializedRules();
-    result[1] = flatData;
-    result[2] = [];
-    w._rootReferences().forEach((x) => x.writeToList(result[2]));
-    return result;
+    var rules = w.serializedRules();
+    var roots = newResultList();
+    w._rootReferences().forEach((x) => x.writeToList(roots));
+    return packagedOutput(rules, flatData, roots);
   }
 
-  newFlatData() => [];
+  /**
+   * Return the kind of object that we write our intermediate data into.
+   */
+  newResultList() => [];
+
+  /**
+   * Assemble the output appropriately for the format, in this
+   * case a list of 3 lists.
+   */
+  List packagedOutput(rules, flatData, roots) {
+    return [rules, flatData, roots];
+  }
+
 
   /**
    * Writes the data from [rule] into the [target] list.
@@ -457,23 +467,26 @@ class SimpleFlatFormat extends Format {
    * format.
    */
   Map<String, dynamic> read(List rawInput, Reader r) {
+    return constructInputMap(
+        rawInput[0], rawInput[1].iterator, rawInput[2].iterator, r);
+  }
+
+
+  Map<String, dynamic> constructInputMap(rules, dataIterator, rootsAsInts, Reader r) {
     // TODO(alanknight): It's annoying to have to pass the reader around so
     // much, consider having the format be specific to a particular
     // serialization operation along with the reader and having it as a field.
     var input = {};
-    input["rules"] = rawInput[0];
-    r.readRules(input["rules"]);
+    input["rules"] = rules;
+    r.readRules(rules);
 
-    var flatData = rawInput[1];
-    var stream = flatData.iterator;
     var tempData = new List(r.rules.length);
     for (var eachRule in r.rules) {
-       tempData[eachRule.number] = readRuleDataFrom(stream, eachRule, r);
+       tempData[eachRule.number] = readRuleDataFrom(dataIterator, eachRule, r);
     }
     input["data"] = tempData;
 
     var roots = [];
-    var rootsAsInts = rawInput[2].iterator;
     do {
       roots.add(nextReferenceFrom(rootsAsInts, r));
     } while (rootsAsInts.current != null);
@@ -481,6 +494,7 @@ class SimpleFlatFormat extends Format {
     input["roots"] = roots;
     return input;
   }
+
 
   /**
    * Read the data for [rule] from [input] and return it.
@@ -572,8 +586,19 @@ class SimpleFlatFormat extends Format {
   }
 }
 
-
+/**
+ * A format that writes to a truly flat list, and also uses a [Uint32List],
+ * which is transferable, so it can be efficiently sent between isolates
+ * in the browser.
+ */
 class TypedListFormat extends SimpleFlatFormat {
+  /**
+   * For each rule we store data to indicate whether it will be reconstructed
+   * as a primitive, a list or a map.
+   */
+  static const int STORED_AS_LIST = 1;
+  static const int STORED_AS_MAP = 2;
+  static const int STORED_AS_PRIMITIVE = 3;
   static const int STORED_AS_FLOAT = 4;
   static const int STORED_AS_STRING = 5;
   static const int STORED_AS_BOOL = 6;
@@ -582,27 +607,29 @@ class TypedListFormat extends SimpleFlatFormat {
 
   const TypedListFormat();
 
-  List generateOutput(Writer w) {
+  /**
+   * Return the kind of object that we write our data into.
+   */
+  newResultList() => new TypedListBuffer();
+
+  /**
+   * Assemble the output appropriately for the format, in this
+   * case a single list of ints.
+   */
+  Uint32List packagedOutput(TypedListBuffer rules, TypedListBuffer flatData,
+      TypedListBuffer roots) {
     var result = newResultList();
-    var flatData = newResultList();
-    for (var eachRule in w.rules) {
-      var ruleData = w.states[eachRule.number];
-      flatData.add(ruleData.length);
-      writeStateInto(eachRule, ruleData, flatData);
-    }
-    var rules = w.serializedRules();
+    // We write the rules directly, which may result in doubly encoding
+    // them, but is simpler because they might also be null. The others
+    // we explicitly encode as length and then addAll so we don't
+    // double-encode.
     result.add(rules);
     result.add(flatData.typedList.length);
     result.addAll(flatData.typedList);
-    var roots = newResultList();
-    w._rootReferences().forEach((x) => x.writeToList(roots));
     result.add(roots.typedList.length);
     result.addAll(roots.typedList);
     return result.typedList;
   }
-
-  TypedListBuffer newResultList() => new TypedListBuffer();
-
 
   /**
    * Read the data from [rawInput] in the context of [r] and return it as a
@@ -611,44 +638,34 @@ class TypedListFormat extends SimpleFlatFormat {
    * format.
    */
   Map<String, dynamic> read(rawInput, Reader r) {
-    var input = {};
     var iterator = new TypedListIterator(rawInput);
     iterator.moveNext();
     var rules = iterator.current;
-    input["rules"] = rules;
-    r.readRules(rules);
 
     iterator.moveNext();
     var flatDataLength = iterator.current;
     var flatData = iterator.next(flatDataLength);
-    var stream = new TypedListIterator(flatData);
-    var tempData = new List(r.rules.length);
-    for (var eachRule in r.rules) {
-       tempData[eachRule.number] = readRuleDataFrom(stream, eachRule, r);
-    }
-    input["data"] = tempData;
+    var dataIterator = new TypedListIterator(flatData);
 
-    var roots = [];
     iterator.moveNext();
     var rootLength = iterator.current;
     var rootList = iterator.next(rootLength);
     var rootsAsInts = new TypedListIterator(rootList);
-    do {
-      roots.add(nextReferenceFrom(rootsAsInts, r));
-    } while (rootsAsInts.current != null);
-
-    input["roots"] = roots;
-    return input;
+    return constructInputMap(rules, dataIterator, rootsAsInts, r);
   }
-
 }
 
+/**
+ * A buffer for writing simple object references into a Uint32List.
+ */
 class TypedListBuffer {
   var buffer = <int>[];
+  // TODO(alanknight): Make this more efficient.
+  get typedList => new Uint32List.fromList(buffer);
 
-  addAll(x) => x.forEach(add);
+  void addAll(x) => x.forEach(add);
 
-  add(thing) {
+  void add(thing) {
     if (thing == null) {
       buffer.add(TypedListFormat.STORED_AS_NULL);
       return;
@@ -670,28 +687,30 @@ class TypedListBuffer {
       return;
     }
     if (thing is List) {
-      buffer.add(SimpleFlatFormat.STORED_AS_LIST);  // ## don't share constants
+      buffer.add(TypedListFormat.STORED_AS_LIST);
       buffer.add(thing.length);
       addAll(thing);
       return;
     }
     if (thing is double) {
-      var words = (new Float64List(1)..[0] = thing).buffer.asInt32List;
+      var words = (new Float64List(1)..[0] = thing).buffer.asUint32List;
       buffer.add(TypedListFormat.STORED_AS_FLOAT);
       buffer.addAll(words);
       return;
     }
   }
-  get typedList => new Int32List.fromList(buffer);
-
 }
 
+/**
+ * Read from a list of ints and reconstruct the simple objects that
+ * this format writes.
+ */
 class TypedListIterator implements Iterator {
   TypedListIterator(buffer) : _internal = buffer.iterator;
 
   Iterator _internal;
 
-  moveNext() {
+  bool moveNext() {
     var hasNext = _internal.moveNext();
     if (!hasNext) {
       current = null;
@@ -709,14 +728,15 @@ class TypedListIterator implements Iterator {
       case TypedListFormat.STORED_AS_STRING:
         _internal.moveNext();
         var length = _internal.current;
-        var codeUnits = _next(length);
+        var codeUnits = _nextInts(length);
         current = new String.fromCharCodes(codeUnits);
         return true;
       case TypedListFormat.STORED_AS_BOOL:
         _internal.moveNext();
         current = _internal.current == 1;
         return true;
-      case SimpleFlatFormat.STORED_AS_LIST:
+      case TypedListFormat.STORED_AS_LIST:
+        // TODO(alanknight): There should be a better way of nesting a list.
         _internal.moveNext();
         var length = _internal.current;
         var tempList = [];
@@ -724,22 +744,28 @@ class TypedListIterator implements Iterator {
           moveNext();
           tempList.add(current);
         }
-        current = tempList;  // #### UGH. Not a nice implementation.
+        current = tempList;
         return true;
       case TypedListFormat.STORED_AS_FLOAT:
         _internal.moveNext();
         var word1 = _internal.current;
         _internal.moveNext();
         var word2 = _internal.current;
-        var words = new Int32List(2)..[0]=word1..[1]=word2;
+        var words = new Uint32List(2)..[0]=word1..[1]=word2;
         current = new Float64List.view(words.buffer)[0];
         return true;
     }
   }
 
+  /**
+   * The current object we are reading.
+   */
   var current;
 
-  List<int> _next(int n) {
+  /**
+   * Get the next [n] ints from the underlying buffer.
+   */
+  List<int> _nextInts(int n) {
     var result = [];
     for (var i = 0; i < n; i++) {
       _internal.moveNext();
@@ -748,6 +774,9 @@ class TypedListIterator implements Iterator {
     return result;
   }
 
+  /**
+   * Reads the next [n] objects.
+   */
   List next(int n) {
     var result = [];
     for (var i = 0; i < n; i++) {
