@@ -616,7 +616,7 @@ class TypedListFormat extends SimpleFlatFormat {
    * Assemble the output appropriately for the format, in this
    * case a single list of ints.
    */
-  Uint32List packagedOutput(TypedListBuffer rules, TypedListBuffer flatData,
+  Uint32List packagedOutput(Uint32List rules, TypedListBuffer flatData,
       TypedListBuffer roots) {
     var result = newResultList();
     // We write the rules directly, which may result in doubly encoding
@@ -693,7 +693,7 @@ class TypedListBuffer {
       return;
     }
     if (thing is double) {
-      var words = (new Float64List(1)..[0] = thing).buffer.asUint32List;
+      var words = (new Float64List(1)..[0] = thing).buffer.asUint32List();
       buffer.add(TypedListFormat.STORED_AS_FLOAT);
       buffer.addAll(words);
       return;

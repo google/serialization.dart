@@ -243,6 +243,8 @@ commonTests() {
       expect(writeAndReadBack(s, eachFormat, {"hello" : "world"}),
           {"hello" : "world"});
       expect(writeAndReadBack(s, eachFormat, true), true);
+      expect(writeAndReadBack(s, eachFormat, [false]), [false]);
+      expect(writeAndReadBack(s, eachFormat, [3.14159]), [3.14159]);
     }
   });
 

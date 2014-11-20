@@ -5,7 +5,6 @@
 library serialization_test;
 
 import 'dart:convert';
-import 'dart:isolate';
 
 import 'package:unittest/unittest.dart';
 import 'package:serialization/serialization_mirrors.dart';
