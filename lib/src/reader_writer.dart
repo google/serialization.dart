@@ -598,7 +598,7 @@ class Reference {
   };
 
   /** Write our information to [list]. Useful in writing to flat formats.*/
-  void writeToList(List list) {
+  void writeToList(list) {
     list.add(ruleNumber);
     list.add(objectNumber);
   }

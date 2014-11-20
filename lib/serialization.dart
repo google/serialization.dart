@@ -153,7 +153,7 @@
  * Or, using a [Writer] explicitly
  *      var writer = serialization.newWriter(new SimpleFlatFormat());
  *      List output = writer.write(address);
- * 
+ *
  * It's also possible to create a serialization with a default format.
  *     Serialization s = new Serialization(format: const SimpleJsonFormat());
  *
@@ -200,6 +200,7 @@ library serialization;
 
 import 'src/serialization_helpers.dart';
 import 'dart:collection';
+import 'dart:typed_data';
 
 part 'src/reader_writer.dart';
 part 'src/serialization_rule.dart';

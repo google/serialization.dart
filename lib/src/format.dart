@@ -349,7 +349,7 @@ class SimpleFlatFormat extends Format {
    */
   List generateOutput(Writer w) {
     var result = new List(3);
-    var flatData = [];
+    var flatData = newFlatData();
     for (var eachRule in w.rules) {
       var ruleData = w.states[eachRule.number];
       flatData.add(ruleData.length);
@@ -362,10 +362,12 @@ class SimpleFlatFormat extends Format {
     return result;
   }
 
+  newFlatData() => [];
+
   /**
    * Writes the data from [rule] into the [target] list.
    */
-  void writeStateInto(SerializationRule rule, List ruleData, List target) {
+  void writeStateInto(SerializationRule rule, List ruleData, target) {
     if (!ruleData.isEmpty) {
       var sample = ruleData.first;
       if (rule.storesStateAsLists || sample is List) {
@@ -390,7 +392,7 @@ class SimpleFlatFormat extends Format {
    * right length when we read it back. We expect everything in the list to be
    * a reference, which is stored as two numbers.
    */
-  void writeLists(SerializationRule rule, List<List> entries, List target) {
+  void writeLists(SerializationRule rule, List<List> entries, target) {
     target.add(STORED_AS_LIST);
     for (var eachEntry in entries) {
       if (rule.hasVariableLengthEntries) {
@@ -410,7 +412,7 @@ class SimpleFlatFormat extends Format {
    * values. We expect the values to be references, which we store as
    * two numbers.
    */
-  void writeMaps(SerializationRule rule, List<Map> entries, List target) {
+  void writeMaps(SerializationRule rule, List<Map> entries, target) {
     target.add(STORED_AS_MAP);
     for (var eachEntry in entries) {
       if (rule.hasVariableLengthEntries) {
@@ -427,7 +429,7 @@ class SimpleFlatFormat extends Format {
    * Write [entries], which contains simple objects which we can put directly
    * into [target].
    */
-  void writeObjects(List entries, List target) {
+  void writeObjects(List entries, target) {
     target.add(STORED_AS_PRIMITIVE);
     for (var each in entries) {
       if (!isPrimitive(each)) throw new SerializationException("Invalid data");
@@ -439,7 +441,7 @@ class SimpleFlatFormat extends Format {
    * Write [eachRef] to [target]. It will be written as two ints. If [eachRef]
    * is null it will be written as two nulls.
    */
-  void writeReference(Reference eachRef, List target) {
+  void writeReference(Reference eachRef, target) {
     // TODO(alanknight): Writing nulls is problematic in a real flat format.
     if (eachRef == null) {
       target..add(null)..add(null);
@@ -571,12 +573,187 @@ class SimpleFlatFormat extends Format {
 }
 
 
-class ByteListFormat extends SimpleFlatFormat {
-  static const int STORED_AS_FLOAT = 3;
-  static const int STORED_AS_STRING = 3;
+class TypedListFormat extends SimpleFlatFormat {
+  static const int STORED_AS_FLOAT = 4;
+  static const int STORED_AS_STRING = 5;
+  static const int STORED_AS_BOOL = 6;
+  static const int STORED_AS_INT = 7;
+  static const int STORED_AS_NULL = 8;
 
-  newFlatData() =>
+  const TypedListFormat();
 
+  List generateOutput(Writer w) {
+    var result = newResultList();
+    var flatData = newResultList();
+    for (var eachRule in w.rules) {
+      var ruleData = w.states[eachRule.number];
+      flatData.add(ruleData.length);
+      writeStateInto(eachRule, ruleData, flatData);
+    }
+    var rules = w.serializedRules();
+    result.add(rules);
+    result.add(flatData.typedList.length);
+    result.addAll(flatData.typedList);
+    var roots = newResultList();
+    w._rootReferences().forEach((x) => x.writeToList(roots));
+    result.add(roots.typedList.length);
+    result.addAll(roots.typedList);
+    return result.typedList;
+  }
+
+  TypedListBuffer newResultList() => new TypedListBuffer();
+
+
+  /**
+   * Read the data from [rawInput] in the context of [r] and return it as a
+   * Map with entries for "roots", "data" and "rules", which the reader knows
+   * how to interpret. We expect [rawInput] to have been generated from this
+   * format.
+   */
+  Map<String, dynamic> read(rawInput, Reader r) {
+    var input = {};
+    var iterator = new TypedListIterator(rawInput);
+    iterator.moveNext();
+    var rules = iterator.current;
+    input["rules"] = rules;
+    r.readRules(rules);
+
+    iterator.moveNext();
+    var flatDataLength = iterator.current;
+    var flatData = iterator.next(flatDataLength);
+    var stream = new TypedListIterator(flatData);
+    var tempData = new List(r.rules.length);
+    for (var eachRule in r.rules) {
+       tempData[eachRule.number] = readRuleDataFrom(stream, eachRule, r);
+    }
+    input["data"] = tempData;
+
+    var roots = [];
+    iterator.moveNext();
+    var rootLength = iterator.current;
+    var rootList = iterator.next(rootLength);
+    var rootsAsInts = new TypedListIterator(rootList);
+    do {
+      roots.add(nextReferenceFrom(rootsAsInts, r));
+    } while (rootsAsInts.current != null);
+
+    input["roots"] = roots;
+    return input;
+  }
 
 }
 
+class TypedListBuffer {
+  var buffer = <int>[];
+
+  addAll(x) => x.forEach(add);
+
+  add(thing) {
+    if (thing == null) {
+      buffer.add(TypedListFormat.STORED_AS_NULL);
+      return;
+    }
+    if (thing is int) {
+      buffer.add(TypedListFormat.STORED_AS_INT);
+      buffer.add(thing);
+      return;
+    }
+    if (thing is String) {
+      buffer.add(TypedListFormat.STORED_AS_STRING);
+      buffer.add(thing.codeUnits.length);
+      buffer.addAll(thing.codeUnits);
+      return;
+    }
+    if (thing is bool) {
+      buffer.add(TypedListFormat.STORED_AS_BOOL);
+      buffer.add(thing ? 1 : 0);
+      return;
+    }
+    if (thing is List) {
+      buffer.add(SimpleFlatFormat.STORED_AS_LIST);  // ## don't share constants
+      buffer.add(thing.length);
+      addAll(thing);
+      return;
+    }
+    if (thing is double) {
+      var words = (new Float64List(1)..[0] = thing).buffer.asInt32List;
+      buffer.add(TypedListFormat.STORED_AS_FLOAT);
+      buffer.addAll(words);
+      return;
+    }
+  }
+  get typedList => new Int32List.fromList(buffer);
+
+}
+
+class TypedListIterator implements Iterator {
+  TypedListIterator(buffer) : _internal = buffer.iterator;
+
+  Iterator _internal;
+
+  moveNext() {
+    var hasNext = _internal.moveNext();
+    if (!hasNext) {
+      current = null;
+      return hasNext;
+    }
+    var c = _internal.current;
+    switch (c) {
+      case TypedListFormat.STORED_AS_NULL:
+        current = null;
+        return true;
+      case TypedListFormat.STORED_AS_INT:
+        _internal.moveNext();
+        current = _internal.current;
+        return true;
+      case TypedListFormat.STORED_AS_STRING:
+        _internal.moveNext();
+        var length = _internal.current;
+        var codeUnits = _next(length);
+        current = new String.fromCharCodes(codeUnits);
+        return true;
+      case TypedListFormat.STORED_AS_BOOL:
+        _internal.moveNext();
+        current = _internal.current == 1;
+        return true;
+      case SimpleFlatFormat.STORED_AS_LIST:
+        _internal.moveNext();
+        var length = _internal.current;
+        var tempList = [];
+        for (var i = 0; i < length; i++) {
+          moveNext();
+          tempList.add(current);
+        }
+        current = tempList;  // #### UGH. Not a nice implementation.
+        return true;
+      case TypedListFormat.STORED_AS_FLOAT:
+        _internal.moveNext();
+        var word1 = _internal.current;
+        _internal.moveNext();
+        var word2 = _internal.current;
+        var words = new Int32List(2)..[0]=word1..[1]=word2;
+        current = new Float64List.view(words.buffer)[0];
+        return true;
+    }
+  }
+
+  var current;
+
+  List<int> _next(int n) {
+    var result = [];
+    for (var i = 0; i < n; i++) {
+      _internal.moveNext();
+      result.add(_internal.current);
+    }
+    return result;
+  }
+
+  List next(int n) {
+    var result = [];
+    for (var i = 0; i < n; i++) {
+      moveNext();
+      result.add(current);
+    }
+    return result;
+  }
+}

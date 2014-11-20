@@ -40,7 +40,8 @@ initializeNodes() {
 
 var formats = [const InternalMapFormat(),
                const SimpleFlatFormat(), const SimpleMapFormat(),
-               const SimpleJsonFormat(storeRoundTripInfo: true)];
+               const SimpleJsonFormat(storeRoundTripInfo: true),
+               const TypedListFormat()];
 
 /// Tests in common between mirrored and non-mirrored testing. Because
 /// this contains a setUp, it should be called first.
