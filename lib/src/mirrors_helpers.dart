@@ -12,6 +12,7 @@ library mirrors_helpers;
 import 'dart:mirrors' as mirrors;
 //export 'dart:mirrors';
 import 'serialization_helpers.dart';
+import 'package:serialization/serialization.dart';
 
 class Serializable extends SimpleSerializable {
   const Serializable();
@@ -71,6 +72,25 @@ class Serializable extends SimpleSerializable {
 
   reflectClass(type) => new ClassView(type);
 
+  lookupType(String qualifiedName) {
+    var separatorIndex = qualifiedName.lastIndexOf(".");
+    var type = qualifiedName.substring(separatorIndex + 1);
+    var library = qualifiedName.substring(0, separatorIndex);
+    var librarySymbol = new Symbol(library);
+    var typeSymbol = new Symbol(type);
+    var lib;
+    try {
+      lib = mirrors.currentMirrorSystem().findLibrary(librarySymbol);
+    } on Exception catch (e) {
+      throw new SerializationException("Cannot resolve $qualifiedName: $e");
+    }
+    var candidate = lib.declarations[typeSymbol];
+    if (candidate != null) {
+      return this.reflectClass(candidate.reflectedType);
+    } else {
+      return null;
+    }
+  }
 }
 
 class SimpleSerializable {

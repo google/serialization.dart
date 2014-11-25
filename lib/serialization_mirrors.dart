@@ -15,7 +15,7 @@ export 'package:serialization/serialization.dart';
 import 'src/serialization_helpers.dart';
 import 'src/mirrors_helpers.dart';
 import 'dart:collection';
-import 'dart:mirrors';
+//import 'dart:mirrors';
 
 part 'src/basic_rule.dart';
 
@@ -127,10 +127,10 @@ class Serialization extends s.Serialization {
  * [Serialization.read].
  */
 class MirrorRule extends NamedObjectRule {
-  bool appliesTo(object, Writer writer) => object is DeclarationMirror || object is ClassView;
+  bool appliesTo(object, Writer writer) => object is ClassView;
 
   String nameFor(object, Writer writer) =>
-      MirrorSystem.getName(object.qualifiedName);
+      const SymbolNameView().name(object.qualifiedName);
 
   inflateEssential(state, Reader r) {
     var qualifiedName = r.resolveReference(state.first);
@@ -146,19 +146,21 @@ class MirrorRule extends NamedObjectRule {
     // So follow one or the other path depending if it has a colon, which we
     // assume is in any URI and can't be in a Symbol.
     if (name.contains(":")) {
-      var uri = Uri.parse(name);
-      var libMirror = currentMirrorSystem().libraries[uri];
-      var candidate = libMirror.declarations[new Symbol(type)];
-      return candidate is ClassMirror ? const Serializable().reflectClass(candidate.reflectedType) : null;
+//      var uri = Uri.parse(name);
+//      var libMirror = currentMirrorSystem().libraries[uri];
+//      var candidate = libMirror.declarations[new Symbol(type)];
+//      return candidate is ClassMirror ? const Serializable().reflectClass(candidate.reflectedType) : null;
     } else {
-      var symbol = new Symbol(name);
-      var typeSymbol = new Symbol(type);
-      for (var libMirror in currentMirrorSystem().libraries.values) {
-        if (libMirror.simpleName != symbol) continue;
-        var candidate = libMirror.declarations[typeSymbol];
-        if (candidate != null && candidate is ClassMirror) return const Serializable().reflectClass(candidate.reflectedType);
-      }
-      return null;
+      return const Serializable().lookupType(qualifiedName);
+//      var symbol = new Symbol(name);
+//      var typeSymbol = new Symbol(type);
+//      var lib = currentMirrorSystem().findLibrary(symbol);
+//      for (var libMirror in currentMirrorSystem().libraries.values) {
+//        if (libMirror.simpleName != symbol) continue;
+//        var candidate = libMirror.declarations[typeSymbol];
+//        if (candidate != null && candidate is ClassMirror) return const Serializable().reflectClass(candidate.reflectedType);
+//      }
+//      return null;
     }
   }
 }
@@ -166,7 +168,7 @@ class MirrorRule extends NamedObjectRule {
 /** A hard-coded rule for serializing Symbols. */
 class SymbolRule extends CustomRule {
   bool appliesTo(instance, _) => instance is Symbol;
-  getState(instance) => [MirrorSystem.getName(instance)];
+  getState(instance) => [const SymbolNameView().name(instance)];
   create(state) => new Symbol(state[0]);
   void setState(symbol, state) {}
   int get dataLength => 1;

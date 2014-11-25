@@ -233,7 +233,7 @@ class BasicRule extends SerializationRule {
    * first resolving references in the context of [reader].
    */
   inflateEssential(state, Reader reader) {
-    InstanceMirror mirror = constructor.constructFrom(
+    var mirror = constructor.constructFrom(
         makeIndexableByNumber(state), reader);
     return mirror.reflectee;
   }

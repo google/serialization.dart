@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 /// Code that is common to testing serialization with and without mirrors.
-library serialization_test;
+library serialization_test_common;
 
 import 'dart:convert';
 import 'dart:isolate';
