@@ -22,7 +22,7 @@ class BasicRule extends SerializationRule {
    * The [type] is used both to find fields and to verify if the object is one
    * that we handle.
    */
-  final ClassView type; // ##### Can we do without this?    ### Also, how do we separate simple from complex.
+  final type; // ##### Can we do without this?    ### Also, how do we separate simple from complex.
 
   /** Used to create new objects when reading. */
   final Constructor constructor;
@@ -61,7 +61,7 @@ class BasicRule extends SerializationRule {
    * [excludeFields] lets you tell it to find the fields automatically, but
    *   omit some that would otherwise be included.
    */
-  factory BasicRule(SimpleClassView type, String constructorName,
+  factory BasicRule(type, String constructorName,
       List constructorFields, List regularFields, List excludeFields) {
 
     var fields = new _FieldList(type);
@@ -184,7 +184,7 @@ class BasicRule extends SerializationRule {
    */
   extractState(object, Function callback, Writer w) {
     var result = createStateHolder();
-    var mirror = const SimpleSerializable().reflect(object);
+    var mirror = const SimpleSerializable().reflectZZZ(object);
 
     keysAndValues(_fields).forEach(
         (index, field) {
@@ -242,7 +242,7 @@ class BasicRule extends SerializationRule {
    * [object], resolving references in the context of [reader].
    */
   inflateNonEssential(rawState, object, Reader reader) {
-    var mirror = const Serializable().reflect(object); // ### TODO(alanknight): How do we handle escalating to a mirror that can do invoke without requiring it all the time?
+    var mirror = const Serializable().reflectZZZ(object); // ### TODO(alanknight): How do we handle escalating to a mirror that can do invoke without requiring it all the time?
     var state = makeIndexableByNumber(rawState);
     _fields.forEachRegularField( (_Field field) {
       var value = reader.inflateReference(state[field.index]);
@@ -255,7 +255,7 @@ class BasicRule extends SerializationRule {
    * this is true if the type mirrors are the same.
    */
   // TODO(alanknight): This seems likely to be slow. Verify. Other options?
-  bool appliesTo(object, Writer w) => type.matches(object);
+  bool appliesTo(object, Writer w) => object.runtimeType == type.type;
 
   bool get hasVariableLengthEntries => false;
 
@@ -383,15 +383,15 @@ class _NamedField extends _Field {
     setter(object, value);
   }
 
-  valueIn(mirror) => mirror.getField(nameSymbol);
+  valueIn(mirror) => mirror.read(nameSymbol);
 
   /** Return the function to use to set our value. */
   Function get setter =>
       (customSetter != null) ? customSetter : defaultSetter;
 
   /** The default setter function. */
-  void defaultSetter(InstanceView object, value) {
-    object.setField(nameSymbol, value);
+  void defaultSetter(object, value) {
+    object.write(nameSymbol, value);
   }
 
   String toString() => 'Field($name)';
@@ -567,18 +567,18 @@ class _FieldList extends IterableBase<_Field> {
    * that are listed in the constructor fields.
    */
   void figureOutFields() {
-    Iterable names(Iterable<DeclarationView> mirrors) =>
-        mirrors.map((each) => each.simpleName).toList();
+    Iterable names(Iterable mirrors) =>
+        mirrors.map((each) => each.name).toList();
 
     if (!_shouldFigureOutFields || !regularFields().isEmpty) return;
     var fields = const Serializable().publicFields(mirror);
     var getters = const Serializable().publicGetters(mirror);
     var gettersWithSetters = getters.where( (each)
         => mirror.declarations[
-            new Symbol("${const SymbolNameView().name(each.simpleName)}=")] != null);
+            new Symbol("${const SymbolNameView().name(each.name)}=")] != null);
     var gettersThatMatchConstructor = getters.where((each)
-        => (named(each.simpleName) != null) &&
-            (named(each.simpleName).usedInConstructor)).toList();
+        => (named(each.name) != null) &&
+            (named(each.name).usedInConstructor)).toList();
     addAllNotExplicitlyExcluded(names(fields));
     addAllNotExplicitlyExcluded(names(gettersWithSetters));
     addAllNotExplicitlyExcluded(names(gettersThatMatchConstructor));
@@ -599,7 +599,7 @@ typedef SetWithFunction(m, object);
  */
 class Constructor {
   /** The mirror of the class we construct. */
-  final SimpleClassView type;
+  final type;
 
   /** The name of the constructor to use, if not the default constructor.*/
   String name;
@@ -630,7 +630,8 @@ class Constructor {
     // TODO(alanknight): Handle named parameters
     Iterable inflated = fieldNumbers.map(
         (x) => (x is int) ? r.inflateReference(state[x]) : x);
-    return type.newInstance(nameSymbol, inflated.toList());
+    return mirrors.reflectType(type.type).newInstance(nameSymbol, inflated.toList());
+//      return type.invoke(nameSymbol, inflated.toList()); ????
   }
 }
 

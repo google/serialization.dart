@@ -15,7 +15,7 @@ export 'package:serialization/serialization.dart';
 import 'src/serialization_helpers.dart';
 import 'src/mirrors_helpers.dart';
 import 'dart:collection';
-//import 'dart:mirrors';
+import 'dart:mirrors' as mirrors;
 
 part 'src/basic_rule.dart';
 
@@ -127,10 +127,10 @@ class Serialization extends s.Serialization {
  * [Serialization.read].
  */
 class MirrorRule extends NamedObjectRule {
-  bool appliesTo(object, Writer writer) => object is ClassView;
+  bool appliesTo(object, Writer writer) => object is MtClassMirror;
 
   String nameFor(object, Writer writer) =>
-      const SymbolNameView().name(object.qualifiedName);
+      const SymbolNameView().name(mirrors.reflectType(object.type).qualifiedName);
 
   inflateEssential(state, Reader r) {
     var qualifiedName = r.resolveReference(state.first);
