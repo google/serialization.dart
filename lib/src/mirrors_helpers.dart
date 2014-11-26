@@ -50,9 +50,7 @@ class Serializable extends SimpleSerializable {
       print("children");
     var field = mirror.getDeclaration(name);
     if (field != null && field.isField && !field.isStatic) return true;
-    var superclass = getSuperclass(mirror);
-    if (superclass == null) return false;
-    return hasField(name, superclass);
+    return false;
   }
 
   /**
