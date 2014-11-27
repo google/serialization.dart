@@ -47,6 +47,11 @@ class Serializable extends SimpleSerializable {
   bool hasField(Symbol name, mirror) {
     if (name == null) return false;
     var field = mirror.getDeclaration(name);
+    var field2 = mirror.declarations[name];
+    if (field2 == null || (field.name != field2.name)) {
+      print("Found different answers for getDeclaration($name) and declarations[$name]");
+      print("$field vs. $field2");
+    }
     if (field != null && field.isField && !field.isStatic) return true;
     return false;
   }
