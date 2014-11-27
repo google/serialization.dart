@@ -43,11 +43,15 @@ dart2js test/serialization_test.dart && \
 cat $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js > foo.js && \
 node foo.js && \
 dart2js test/no_library_test.dart && \
-d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+cat $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js > foo.js && \
+node foo.js && \
 dart2js test/serialization_mirrors_test.dart && \
-d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+cat $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js > foo.js && \
+node foo.js && \
 (cd test/transformer && dart generate_standalone.dart) && \
 dart2js test/transformer/transformer_test.dart && \
-d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+cat $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js > foo.js && \
+node foo.js && \
 dart2js test/transformer/transformer_maps_test.dart && \
-d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js
+cat $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js > foo.js && \
+node foo.js
