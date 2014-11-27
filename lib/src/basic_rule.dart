@@ -184,7 +184,7 @@ class BasicRule extends SerializationRule {
    */
   extractState(object, Function callback, Writer w) {
     var result = createStateHolder();
-    var mirror = const SimpleSerializable().reflectZZZ(object);
+    var mirror = const SimpleSerializable().reflect(object);
 
     keysAndValues(_fields).forEach(
         (index, field) {
@@ -242,7 +242,7 @@ class BasicRule extends SerializationRule {
    * [object], resolving references in the context of [reader].
    */
   inflateNonEssential(rawState, object, Reader reader) {
-    var mirror = const Serializable().reflectZZZ(object); // ### TODO(alanknight): How do we handle escalating to a mirror that can do invoke without requiring it all the time?
+    var mirror = const Serializable().reflect(object); // ### TODO(alanknight): How do we handle escalating to a mirror that can do invoke without requiring it all the time?
     var state = makeIndexableByNumber(rawState);
     _fields.forEachRegularField( (_Field field) {
       var value = reader.inflateReference(state[field.index]);
@@ -366,7 +366,7 @@ class _NamedField extends _Field {
   }
 
   String get name =>
-      _name == null ? _name = const SymbolNameView().name(nameSymbol) : _name;
+      _name == null ? _name = Serializable.nameForSymbol(nameSymbol) : _name;
 
   operator ==(x) => x is _NamedField && (nameSymbol == x.nameSymbol);
   int get hashCode => name.hashCode;
@@ -414,7 +414,7 @@ class _ConstantField extends _Field {
   valueIn(mirror) => value;
 
   /** We cannot be set, so setValue is a no-op. */
-  void setValue(InstanceMirror object, value) {}
+  void setValue(object, value) {}
 
   /** There are places where the code expects us to have an identifier, so
    * use the value for that.
@@ -575,7 +575,7 @@ class _FieldList extends IterableBase<_Field> {
     var getters = const Serializable().publicGetters(mirror);
     var gettersWithSetters = getters.where( (each)
         => mirror.declarations[
-            new Symbol("${const SymbolNameView().name(each.name)}=")] != null);
+            new Symbol("${Serializable.nameForSymbol(each.name)}=")] != null);
     var gettersThatMatchConstructor = getters.where((each)
         => (named(each.name) != null) &&
             (named(each.name).usedInConstructor)).toList();

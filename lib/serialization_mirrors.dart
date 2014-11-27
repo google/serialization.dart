@@ -130,7 +130,7 @@ class MirrorRule extends NamedObjectRule {
   bool appliesTo(object, Writer writer) => object is MtClassMirror;
 
   String nameFor(object, Writer writer) =>
-      const SymbolNameView().name(mirrors.reflectType(object.type).qualifiedName);
+      Serializable.nameForSymbol(mirrors.reflectType(object.type).qualifiedName);
 
   inflateEssential(state, Reader r) {
     var qualifiedName = r.resolveReference(state.first);
@@ -168,7 +168,7 @@ class MirrorRule extends NamedObjectRule {
 /** A hard-coded rule for serializing Symbols. */
 class SymbolRule extends CustomRule {
   bool appliesTo(instance, _) => instance is Symbol;
-  getState(instance) => [const SymbolNameView().name(instance)];
+  getState(instance) => [Serializable.nameForSymbol(instance)];
   create(state) => new Symbol(state[0]);
   void setState(symbol, state) {}
   int get dataLength => 1;

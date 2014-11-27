@@ -107,8 +107,8 @@ void main() {
     // we want from the mirror.
     // TODO(alanknight): Either delete this test and decide we shouldn't
     // attempt to access private variables or fix this properly.
-    var _collectionSym = const Serializable().reflectClassZZZ(stream.runtimeType).declarations.keys.firstWhere(
-        (x) => const SymbolNameView().name(x) == "_collection");
+    var _collectionSym = const Serializable().reflectClass(stream.runtimeType).declarations.keys.firstWhere(
+        (x) => Serializable.nameForSymbol(x) == "_collection");
     var s = new Serialization()
       ..addRuleFor(Stream,
           constructorFields: [_collectionSym]);
@@ -135,7 +135,7 @@ void main() {
       } else {
         s = null;
         return new Serialization.blank()
-            ..namedObjects['Node'] = const Serializable().reflectClassZZZ(Node);
+            ..namedObjects['Node'] = const Serializable().reflectClass(Node);
       }
     }
 
@@ -174,7 +174,7 @@ void main() {
       for (var eachMeta in [meta, metaWithMaps]) {
         var serialized = eachMeta.write(s, format: eachFormat);
         var newSerialization = eachMeta.read(serialized, format: eachFormat,
-            externals: {"serialization_test.Node" : const Serializable().reflectClassZZZ(Node)}
+            externals: {"serialization_test.Node" : const Serializable().reflectClass(Node)}
         );
         runRoundTripTest((x) => newSerialization);
       }
@@ -337,7 +337,7 @@ writeAndReadBack(Serialization s, Format format, object) {
 Serialization metaSerialization() {
   // Make some bogus rule instances so we have something to feed rule creation
   // and get their types. If only we had class literals implemented...
-  var basicRule = new BasicRule(const Serializable().reflectClassZZZ(null.runtimeType), '', [], [], []);
+  var basicRule = new BasicRule(const Serializable().reflectClass(null.runtimeType), '', [], [], []);
 
   var meta = new Serialization()
     ..selfDescribing = false
@@ -401,7 +401,7 @@ Reader setUpReader(aSerialization, sampleData) {
 Serialization nodeSerializerReflective(Node n) {
   return new Serialization()
     ..addRuleFor(Node, constructorFields: ["name"])
-    ..namedObjects['Node'] = const Serializable().reflectClassZZZ(new Node('').runtimeType);
+    ..namedObjects['Node'] = const Serializable().reflectClass(new Node('').runtimeType);
 }
 
 /**
@@ -412,7 +412,7 @@ Serialization nodeSerializerUsingMaps(Node n) {
   return new Serialization()
     // Get the type using runtimeType to verify that works.
     ..addRuleFor(n.runtimeType, constructorFields: ["name"]).configureForMaps()
-    ..namedObjects['Node'] = const Serializable().reflectClassZZZ(Node);
+    ..namedObjects['Node'] = const Serializable().reflectClass(Node);
 }
 
 /**
@@ -438,7 +438,7 @@ Serialization nodeSerializerWithEssentialParent(Node n) {
         constructor: "parentEssential",
         constructorFields: ["parent"])
     ..addDefaultRules()
-    ..namedObjects['Node'] = const Serializable().reflectZZZ(Node)
+    ..namedObjects['Node'] = const Serializable().reflect(Node)
     ..selfDescribing = false;
   return s;
 }

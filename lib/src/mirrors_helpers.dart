@@ -12,7 +12,7 @@ library mirrors_helpers;
 import 'dart:mirrors' as mirrors;
 //export 'dart:mirrors';
 import 'package:mirror_tags/tag.dart';
-export 'package:mirror_tags/mirror.dart' show MtClassMirror;
+export 'package:mirror_tags/tag.dart' show MtClassMirror;
 
 import 'serialization_helpers.dart';
 import 'package:serialization/serialization.dart';
@@ -38,7 +38,7 @@ class Serializable extends SimpleSerializable {
   getSuperclass(mirror) {
     var raw = mirrors.reflectClass(mirror.type).superclass;
     if (raw == null) return null;
-    var mySuperclass = const Serializable().reflectClassZZZ(raw.reflectedType);
+    var mySuperclass = const Serializable().reflectClass(raw.reflectedType);
     return mySuperclass;
   }
 
@@ -46,8 +46,6 @@ class Serializable extends SimpleSerializable {
    * includes private fields, but excludes statics. */
   bool hasField(Symbol name, mirror) {
     if (name == null) return false;
-    if (name == #children)
-      print("children");
     var field = mirror.getDeclaration(name);
     if (field != null && field.isField && !field.isStatic) return true;
     return false;
@@ -94,11 +92,13 @@ class Serializable extends SimpleSerializable {
     }
     var candidate = lib.declarations[typeSymbol];
     if (candidate != null) {
-      return this.reflectClassZZZ(candidate.reflectedType);
+      return this.reflectClass(candidate.reflectedType);
     } else {
       return null;
     }
   }
+
+  static nameForSymbol(x) => mirrors.MirrorSystem.getName(x);
 }
 
 class SimpleSerializable extends Tag {
@@ -110,71 +110,7 @@ class SimpleSerializable extends Tag {
    * compatibility.
    */
    turnInstanceIntoSomethingWeCanUse(x) {
-    if (x is Type) return reflectClassZZZ(x);
-    return reflectClassZZZ(x.runtimeType);
+    if (x is Type) return reflectClass(x);
+    return reflectClass(x.runtimeType);
   }
-
-  reflectClassZZZ(t) => Tag.reflectClass(t);
-  reflectZZZ(t) => Tag.reflect(t);
-}
-
-
-//class SimpleClassView {
-//  mirrors.ClassMirror _type;
-//  SimpleClassView(Type type) : _type = mirrors.reflectClass(type);
-//
-//  matches(object) => mirrors.reflect(object).type == _type;
-//  get simpleName => _type.simpleName;
-//  newInstance(Symbol constructorName, List parameters) {
-//    return _type.newInstance(constructorName, parameters);
-//  }
-//  operator ==(x) => _type == x._type;
-//}
-
-
-//class InstanceView {
-//  mirrors.InstanceMirror _mirror;
-//  InstanceView(thing) : _mirror = mirrors.reflect(thing);
-//
-//  getField(Symbol name) => _mirror.getField(name).reflectee;
-//  setField(Symbol name, value) => _mirror.setField(name, value);
-//  get reflectee => _mirror.reflectee;
-//}
-
-
-//class ClassView extends SimpleClassView {
-//  ClassView(Type type) : super(type);
-//
-//  Map<Symbol, DeclarationView> get declarations =>
-//      new Map.fromIterables(
-//          _type.declarations.keys,
-//          _type.declarations.values
-//              .map((x) => new DeclarationView()
-//                  ..symbol = x.simpleName
-//                  ..mirror = x));
-//
-//  ClassView get superclass =>
-//      _type.superclass == null ?
-//          null :
-//          (new ClassView(_type.superclass.reflectedType));
-//
-//  get qualifiedName => _type.qualifiedName;
-//}
-
-//class DeclarationView {
-//  String name;
-//  Symbol symbol;
-//  mirrors.DeclarationMirror mirror;
-//  bool get isVariable => mirror is mirrors.VariableMirror;
-//  bool get isStatic => mirror.isStatic;
-//  bool get isPrivate => mirror.isPrivate;
-//
-//  bool get isMethod => mirror is mirrors.MethodMirror;
-//  bool get isGetter => (mirror as mirrors.MethodMirror).isGetter;
-//  Symbol get simpleName => mirror.simpleName;
-//}
-
-class SymbolNameView {
-  const SymbolNameView();
-  String name(Symbol x) => mirrors.MirrorSystem.getName(x);
 }
