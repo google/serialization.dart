@@ -1,4 +1,7 @@
-## 0.10.3
+## 0.10.4 
+  * Make the Travis tests also run compiled to JS.
+
+## 0.10.3 
   * Clean up setup for serialization. Adds `addRules`,
     `defaultFormat`, and a named `format` parameter to
     the constructors to set `defaultFormat`.
