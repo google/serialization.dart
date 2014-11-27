@@ -12,6 +12,7 @@ set -x
 
 # Get the Dart SDK.
 DART_DIST=dartsdk-linux-x64-release.zip
+#DART_DIST=dartsdk-macos-ia32-release.zip
 curl https://storage.googleapis.com/dart-archive/channels/$DART_CHANNEL/release/latest/sdk/$DART_DIST -o $DART_DIST
 unzip $DART_DIST > /dev/null
 rm $DART_DIST
@@ -37,4 +38,15 @@ dart test/serialization_test.dart && \
 dart test/no_library_test.dart && \
 dart test/serialization_mirrors_test.dart && \
 pub run test/transformer/transformer_test && \
-pub run test/transformer/transformer_maps_test
+pub run test/transformer/transformer_maps_test && \
+dart2js test/serialization_test.dart && \
+d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+dart2js test/no_library_test.dart && \
+d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+dart2js test/serialization_mirrors_test.dart && \
+d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+(cd test/transformer && dart generate_standalone.dart) && \
+dart2js test/transformer/transformer_test.dart && \
+d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js && \
+dart2js test/transformer/transformer_maps_test.dart && \
+d8 $DART_SDK/lib/_internal/compiler/js_lib/preambles/d8.js out.js
