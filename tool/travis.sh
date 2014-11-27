@@ -11,8 +11,8 @@ set -e
 set -x
 
 # Get the Dart SDK.
-#DART_DIST=dartsdk-linux-x64-release.zip
-DART_DIST=dartsdk-macos-ia32-release.zip
+DART_DIST=dartsdk-linux-x64-release.zip
+#DART_DIST=dartsdk-macos-ia32-release.zip
 curl https://storage.googleapis.com/dart-archive/channels/$DART_CHANNEL/release/latest/sdk/$DART_DIST -o $DART_DIST
 unzip $DART_DIST > /dev/null
 rm $DART_DIST
