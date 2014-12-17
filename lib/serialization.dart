@@ -244,6 +244,14 @@ class Serialization {
    */
   bool _selfDescribing;
 
+ /**
+  * Gives a pointer to all of the generated rules constructors.
+  * All the rules listed below are added automatically to
+  * Serialization objects.
+  * This is empty by default and filled by the transformer.
+  */
+  static Map<Type, Function> generatedSerializationRules = {};
+
   /**
    * When we write out data using this serialization, should we also write
    * out a description of the rules. This is on by default unless using
