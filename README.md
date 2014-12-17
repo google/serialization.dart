@@ -35,22 +35,47 @@ or
 
     import "package:serialization/serialization_mirrors.dart"
 
-depending on whether or not you want the mirrored rules. These are
+depending on whether or not you want the mirrored rules. The mirror rules are
 more convenient, but cause increased code size in dartj2s.
 
-To use the transformer, include something in the pubspec like
+To use the transformer, include something in the pubspec like:
 
      transformers:
-       - serialization :
-         $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
+     - serialization :
+       useAnnotation: true
+       files:
+       - bin/stuff.dart
+       - lib/more_stuff.dart
+       - package:package_name/imported_stuff.dart
 
-Then, set up the generated rules in a Serialization instance, and then call
-write(). The serialization rules will be named as
-the name of the model file with `_serialization_rules` appended to it,
-so in the case of `stuff.dart`, `stuff_serialization_rules.dart`, in
-the same directory as the original.
+There are two ways to specify which Classes needs serialization:
 
-Normally you won't ever see these files, because the
+ - You can annotate your classes with `@Serialization()` and specify the
+   `useAnnotation: true` parameter in the transformer. This only works for files
+   part of your project. It won;t work for files part of imported packages.
+ - You can list the Dart files in the `files:` parameter as shown above. In this
+   case a Serialization rule will be generated for all the Classes in these
+   files.
+
+A file named `generated_serialization_rules.dart` containing all the
+Serialization rules is created and imported automatically in your project. It
+effectively overrides `Serialization` and provides a link to all generated rules
+in `Serialization.generatedSerializationRules: Map<Type, Function>`. All these
+rules are automatically add when creating a `new Serialization()` but if you'd
+like to use one individually you can get an instance with:
+
+    CustomRule personRule = serialization.generatedSerializationRules[Person]();
+
+You can also choose to remove a generated serialization rule by doing:
+
+    serialization.generatedSerializationRules.remove(Person);
+
+And adding your own manually written rule:
+
+    Serialization serialization = new Serialization();
+    serialization.addRule(new MyPersonSerializationRule);
+
+Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve
 or to dart2js without ever being written to disk.
 To see the generated code, run pub build in debug mode, e.g.
@@ -59,10 +84,9 @@ using these files, then
 
     pub build --mode=debug bin
 
-would generate the code for that, and also log which
-files were generated, in the form
+would generate the code for that. You can then have a look at the file:
 
-    Generated serialization rules in my_package|lib/stuff_serialization_rules.dart
+    build/bin/generated_serialization_rules.dart
 
 It's also possible to run the transformer's code outside of the
 transformer, which is helpful for debugging or to use the code in a
@@ -71,12 +95,11 @@ an example of that.
 
 The bin directory code would look something like.
 
-    import 'package:my_package/stuff_serialization_rules.dart' as foo;
-     ...
-     var serialization = new Serialization();
-     foo.rules.values.forEach(serialization.addRule);
-     ...
-     sendToClient(serialization.write(somePerson));
+    import 'package:serialization/serialization.dart';
+    ...
+    var serialization = new Serialization();
+    ...
+    sendToClient(serialization.write(somePerson));
 
 and on the client, do something like
 
