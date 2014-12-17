@@ -14,20 +14,22 @@ import "package:serialization/src/custom_rule_generator.dart";
 
 main() {
   var contents = new File("test_models.dart").readAsStringSync();
-  var generated = generateCustomRulesFor(
+  var results = analyzeAsset(
       contents,
       listFormat : true,
-      libraryName: 'test_models',
-      originalImport: 'test_models.dart');
+      processAllClasses: true);
+  results.setImportStatementFromPath("test_models.dart");
   var outFile = new File("test_models_serialization_rules.dart");
-  outFile.writeAsStringSync(generated);
+  String fileCode = generateSerializationRulesFileCode([results]);
+  outFile.writeAsStringSync(fileCode);
 
   contents = new File("test_models_for_maps.dart").readAsStringSync();
-  generated = generateCustomRulesFor(
+  results = analyzeAsset(
       contents,
       listFormat : false,
-      libraryName: 'test_models_for_maps',
-      originalImport: 'test_models_for_maps.dart');
+      processAllClasses: true);
+  results.setImportStatementFromPath("test_models_for_maps.dart");
   outFile = new File("test_models_for_maps_serialization_rules.dart");
-  outFile.writeAsStringSync(generated);
+  fileCode = generateSerializationRulesFileCode([results]);
+  outFile.writeAsStringSync(fileCode);
 }

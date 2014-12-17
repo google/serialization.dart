@@ -23,10 +23,8 @@ Format format = const SimpleJsonFormat(storeRoundTripInfo: true);
 main() {
   // Create separate serializations for reading and writing to make sure
   // nothing relies on common state.
-  var serialization1 =
-      new Serialization(format: format)..addRules(rules.values);
-  var serialization2 =
-      new Serialization(format: format)..addRules(rules.values);
+  var serialization1 = new Serialization(format: format);
+  var serialization2 = new Serialization(format: format);
 
   formatSpecificTests(serialization1, serialization2);
 
