@@ -496,8 +496,20 @@ class Serialization {
 /**
  * An exception class for errors during serialization.
  */
+@override
 class SerializationException implements Exception {
   final String message;
   const SerializationException(this.message);
   String toString() => "SerializationException($message)";
+}
+
+/// Type declarations annotated with @[Serializable] will be discovered by the
+/// transformer and get a generated rules. Do enable this feature a transformer
+/// with option `annotated: true` have to be added to the pubspec.yaml:
+///
+///    transformers:
+///    - serialization :
+///      useAnnotation: true
+class Serializable {
+  const Serializable();
 }
