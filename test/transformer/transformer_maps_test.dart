@@ -4,7 +4,7 @@
 
 library transformer_test;
 
-import "test_models_for_maps.dart" hide Serialization;
+import "test_models_for_maps.dart";
 import "test_models_for_maps_serialization_rules.dart";
 import "package:unittest/unittest.dart";
 
