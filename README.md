@@ -66,14 +66,16 @@ like to use one individually you can get an instance with:
 
     CustomRule personRule = serialization.generatedSerializationRules[Person]();
 
-You can also choose to remove a generated serialization rule by doing:
+You can also choose to remove a generated serialization rule by doing Although
+beware as this is a static member and doing so will potentially remove it for
+all instances of Serialization:
 
-    serialization.generatedSerializationRules.remove(Person);
+    Serialization.generatedSerializationRules.remove(Person);
 
 And adding your own manually written rule:
 
     Serialization serialization = new Serialization();
-    serialization.addRule(new MyPersonSerializationRule);
+    serialization.addRule(new MyPersonSerializationRule());
 
 Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve
