@@ -55,7 +55,7 @@
 ///  object or how to recreate it. That's the job of an
 ///  AddressSerializationRule.
 ///
-///  This transformer generates rules like the above for each class in
+///  This transformer generates rules like the above for each of the classes in
 ///  the libraries that are listed in the pubspec.
 ///
 /// ## Usage
@@ -69,8 +69,8 @@
 ///       - lib/more_stuff.dart
 ///       format: <"lists"|"maps">
 ///
-/// For each classes defined in one of the files listed in the `files:` section
-/// and for each classes annotated with @Serializable()
+/// For each of the classes defined in one of the files listed in the `files:`
+/// section and for each of the classes annotated with @Serializable()
 /// (if `useAnnotation: true` is used) a serialization rule will be generated.
 ///
 /// All the generated serialization rules are added to
