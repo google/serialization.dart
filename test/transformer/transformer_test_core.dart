@@ -26,7 +26,7 @@ main() {
   var serialization1 = new Serialization(format: format);
   var serialization2 = new Serialization(format: format);
 
-  formatSpecificTests(serialization1, serialization2);
+  specificTests(serialization1, serialization2);
 
   test("Write and Read Thing", () {
     var written = serialization1.write(thing1);

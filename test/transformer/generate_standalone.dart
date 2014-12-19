@@ -32,4 +32,15 @@ main() {
   outFile = new File("test_models_for_maps_serialization_rules.dart");
   fileCode = generateSerializationRulesFileCode([results]);
   outFile.writeAsStringSync(fileCode);
+
+  contents = new File("test_models_for_annotation.dart").readAsStringSync();
+  results = analyzeAsset(
+      contents,
+      listFormat : false,
+      processAllClasses: false,
+      processAnnotatedClasses: true);
+  results.setImportStatementFromPath("test_models_for_annotation.dart");
+  outFile = new File("test_models_for_annotation_serialization_rules.dart");
+  fileCode = generateSerializationRulesFileCode([results]);
+  outFile.writeAsStringSync(fileCode);
 }

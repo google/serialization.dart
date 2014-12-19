@@ -4,17 +4,16 @@
 
 library transformer_test;
 
-import "test_models.dart";
-import "test_models_serialization_rules.dart";
+import "test_models_for_annotation.dart";
+import "test_models_for_annotation_serialization_rules.dart";
 import "package:unittest/unittest.dart";
 
 part "transformer_test_core.dart";
 
 specificTests(serialization1, serialization2) {
-  test("Verify that we are actually writing in simple JSON format as a list",
+  test("Verify that there is no serializtion rule for the un-annotated class",
       () {
-    var written = serialization1.write(thing1);
-    expect(written is List, isTrue);
-    expect(written[1], 'thing1');
+    var written = Serialization.generatedSerializationRules[UnAnnotatedThing];
+    expect(written, null);
   });
 }
