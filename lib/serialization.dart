@@ -511,6 +511,8 @@ class SerializationException implements Exception {
 ///    transformers:
 ///    - serialization :
 ///      useAnnotation: true
+///
+/// For more detailed instructions refer to the [README](/README.md).
 class Serializable {
   const Serializable();
 }
