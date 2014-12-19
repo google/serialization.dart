@@ -504,9 +504,9 @@ class SerializationException implements Exception {
   String toString() => "SerializationException($message)";
 }
 
-/// Type declarations annotated with @[Serializable] will be discovered by the
-/// transformer and get a generated rules. Do enable this feature a transformer
-/// with option `annotated: true` have to be added to the pubspec.yaml:
+/// Class declarations annotated with @[Serializable] will be discovered by the
+/// transformer and get a generated rule. To enable this feature a transformer
+/// with option `annotated: true` must be added to the pubspec.yaml:
 ///
 ///    transformers:
 ///    - serialization :
