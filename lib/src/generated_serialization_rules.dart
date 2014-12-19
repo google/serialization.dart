@@ -24,7 +24,7 @@ class Serialization extends s.Serialization {
   factory Serialization({Format format}) {
     Serialization newObj = new Serialization.blank(format: format)
         ..addDefaultRules();
-    generatedSerializationRules.values.forEach(
+    automaticRules.values.forEach(
         (Function f) => newObj.addRule(f()));
     return newObj;
   }
@@ -37,7 +37,7 @@ class Serialization extends s.Serialization {
   // ======== Do not remove the {{GENERATED_RULES_MAP_MARKER}} comment =========
 
   @override
-  static Map<Type, Function> generatedSerializationRules = {
+  static Map<Type, Function> automaticRules = {
     //{{GENERATED_RULES_MAP_MARKER}}
   };
 }

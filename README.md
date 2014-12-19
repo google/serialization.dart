@@ -60,17 +60,17 @@ There are two ways to specify which Classes needs serialization:
 A file named `generated_serialization_rules.dart` containing all the
 Serialization rules is created and imported automatically in your project. It
 effectively overrides `Serialization` and provides a link to all generated rules
-in `Serialization.generatedSerializationRules: Map<Type, Function>`. All these
+in `Serialization.automaticRules: Map<Type, Function>`. All these
 rules are automatically add when creating a `new Serialization()` but if you'd
 like to use one individually you can get an instance with:
 
-    CustomRule personRule = serialization.generatedSerializationRules[Person]();
+    CustomRule personRule = serialization.automaticRules[Person]();
 
 You can also choose to remove a generated serialization rule by doing Although
 beware as this is a static member and doing so will potentially remove it for
 all instances of Serialization:
 
-    Serialization.generatedSerializationRules.remove(Person);
+    Serialization.automaticRules.remove(Person);
 
 You can add your own manually written rule to a Serialization instance:
 
@@ -80,7 +80,7 @@ You can add your own manually written rule to a Serialization instance:
 It could also be more convenient to add your own manually written rule to all
 Serialization instances or replace the generated one:
 
-    Serialization.generatedSerializationRules[MyPerson] =
+    Serialization.automaticRules[MyPerson] =
         () => new MyPersonSerializationRule();
 
 Normally you won't ever see the generated files, because the

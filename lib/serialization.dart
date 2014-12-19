@@ -246,11 +246,13 @@ class Serialization {
 
  /**
   * Gives a pointer to all of the generated rules constructors.
-  * All the rules listed below are added automatically to
+  * All the rules listed below are added automatically to newly instantiated
   * Serialization objects.
   * This is empty by default and filled by the transformer.
+  * You can add/replace your own rules here and they will be automatically added
+  * to newly instantiated [Serialization] objects.
   */
-  static Map<Type, Function> generatedSerializationRules = {};
+  static Map<Type, Function> automaticRules = {};
 
   /**
    * When we write out data using this serialization, should we also write
