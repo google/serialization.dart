@@ -153,7 +153,7 @@
  * Or, using a [Writer] explicitly
  *      var writer = serialization.newWriter(new SimpleFlatFormat());
  *      List output = writer.write(address);
- * 
+ *
  * It's also possible to create a serialization with a default format.
  *     Serialization s = new Serialization(format: const SimpleJsonFormat());
  *
@@ -496,7 +496,6 @@ class Serialization {
 /**
  * An exception class for errors during serialization.
  */
-@override
 class SerializationException implements Exception {
   final String message;
   const SerializationException(this.message);
