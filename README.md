@@ -72,10 +72,16 @@ all instances of Serialization:
 
     Serialization.generatedSerializationRules.remove(Person);
 
-And adding your own manually written rule:
+You can add your own manually written rule to a Serialization instance:
 
     Serialization serialization = new Serialization();
     serialization.addRule(new MyPersonSerializationRule());
+
+It could also be more convenient to add your own manually written rule to all
+Serialization instances or replace the generated one:
+
+    Serialization.generatedSerializationRules[MyPerson] =
+        () => new MyPersonSerializationRule();
 
 Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve
