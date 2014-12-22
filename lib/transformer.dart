@@ -160,6 +160,10 @@ class SerializationTransformer extends AggregateTransformer {
     // Extracting settings.
     bool useAnnotation = _settings.configuration['use_annotation'];
     List<String> files = _settings.configuration['files'];
+    String rulesFileName = _settings.configuration['rules_file_name'];
+    if (rulesFileName == null) {
+      rulesFileName = GENERATED_RULES_FILE_NAME;
+    }
     if (files == null) files = new List();
     String format = _settings.configuration['format'];
     bool useLists = format == null || format == 'lists';
@@ -232,7 +236,8 @@ class SerializationTransformer extends AggregateTransformer {
           // that for assets in the current package because transformers can't
           // modify files outside the current package.
           if (results.importsSerialization && (id.package == mainPackage)) {
-            Asset newAsset = replaceSerializationImport(content, id);
+            Asset newAsset =
+                replaceSerializationImport(content, id, rulesFileName);
             transform.addOutput(newAsset);
             if (_settings.mode == BarbackMode.DEBUG) {
               transform.logger.info("Auto-imported serialization rules in $id");
@@ -243,7 +248,7 @@ class SerializationTransformer extends AggregateTransformer {
         // Generate the files containing the serialization rules and add them to
         // the transformer output.
         List<Asset> newAssets = generateSerializationRulesAsset(
-            allGeneratedRuleCodes, librariesPath, mainPackage,
+            allGeneratedRuleCodes, librariesPath, mainPackage, rulesFileName,
             transform.logger);
         newAssets.forEach(transform.addOutput);
 
@@ -261,10 +266,11 @@ class SerializationTransformer extends AggregateTransformer {
     return completer.future;
   }
 
-  /// Replaces the Serialization imports with the generated rules file import.
+  /// Replaces the Serialization imports with the generated rules file import
+  /// given as [rulesFileName].
   /// Returns a new Asset with the new content.
-  static Asset replaceSerializationImport(String content, AssetId id) {
-    String newImport = GENERATED_RULES_FILE_NAME;
+  static Asset replaceSerializationImport(String content, AssetId id, String rulesFileName) {
+    String newImport = rulesFileName;
     int pathDepth = path.split(id.path).length - 2;
     for (int i = 0; i < pathDepth; i++) {
       newImport = "../$newImport";
@@ -278,7 +284,7 @@ class SerializationTransformer extends AggregateTransformer {
   static List<Asset> generateSerializationRulesAsset(
       List<AssetSerializationAnalysisResults> generatedRuleCodes,
       Map<String, AssetId> librariesPath, String mainPackage,
-      TransformLogger logger) {
+      String rulesFileName, TransformLogger logger) {
 
     // Map of importable Rules for each top directory.
     Map<String, List<AssetSerializationAnalysisResults>>
@@ -322,7 +328,7 @@ class SerializationTransformer extends AggregateTransformer {
       String code = generateSerializationRulesFileCode(
           importableRulesPerTopDir[topDir]);
       AssetId generatedRulesAssetId = new AssetId(mainPackage,
-          "$topDir/$GENERATED_RULES_FILE_NAME");
+          "$topDir/$rulesFileName");
       newAssets.add(new Asset.fromString(generatedRulesAssetId, code));
     }
     return newAssets;

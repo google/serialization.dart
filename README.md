@@ -83,6 +83,13 @@ Serialization instances or replace the generated one:
     Serialization.automaticRules[MyPerson] =
         () => new MyPersonSerializationRule();
 
+You can set the name of the file containing all the generated rules with
+`rules_file_name: 'my_generated_rules_file_name.dart'` this could be useful in
+the uncommon case where you need to generate rules in different files. For
+instance if you have conflicting Classes names you could use this alongside
+`$include: ["file.dart", "file2.dart"]` to run the transformer multiple times
+on separate part of your project.
+
 Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve
 or to dart2js without ever being written to disk.
