@@ -63,7 +63,7 @@
 ///
 ///     transformers:
 ///     - serialization :
-///       useAnnotation: true
+///       use_annotation: true
 ///       files:
 ///       - bin/stuff.dart
 ///       - lib/more_stuff.dart
@@ -71,7 +71,7 @@
 ///
 /// For each of the classes defined in one of the files listed in the `files:`
 /// section and for each of the classes annotated with @Serializable()
-/// (if `useAnnotation: true` is used) a serialization rule will be generated.
+/// (if `use_annotation: true` is used) a serialization rule will be generated.
 ///
 /// All the generated serialization rules are added to
 /// `generated_serialization_rules.dart` files located at the base of the
@@ -158,7 +158,7 @@ class SerializationTransformer extends AggregateTransformer {
     Completer completer = new Completer();
 
     // Extracting settings.
-    bool useAnnotation = _settings.configuration['useAnnotation'];
+    bool useAnnotation = _settings.configuration['use_annotation'];
     List<String> files = _settings.configuration['files'];
     if (files == null) files = new List();
     String format = _settings.configuration['format'];

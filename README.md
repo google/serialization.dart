@@ -42,7 +42,7 @@ To use the transformer, include something in the pubspec like:
 
      transformers:
      - serialization :
-       useAnnotation: true
+       use_annotation: true
        files:
        - bin/stuff.dart
        - lib/more_stuff.dart
@@ -51,7 +51,7 @@ To use the transformer, include something in the pubspec like:
 There are two ways to specify which Classes needs serialization:
 
  - You can annotate your classes with `@Serialization()` and specify the
-   `useAnnotation: true` parameter in the transformer. This only works for files
+   `use_annotation: true` parameter in the transformer. This only works for files
    part of your project. It won;t work for files part of imported packages.
  - You can list the Dart files in the `files:` parameter as shown above. In this
    case a Serialization rule will be generated for all the Classes in these
