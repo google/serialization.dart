@@ -13,7 +13,7 @@ part "transformer_test_core.dart";
 specificTests(serialization1, serialization2) {
   test("Verify that there is no serializtion rule for the un-annotated class",
       () {
-    var written = Serialization.generatedSerializationRules[UnAnnotatedThing];
+    var written = Serialization.automaticRules[UnAnnotatedThing];
     expect(written, null);
   });
 }
