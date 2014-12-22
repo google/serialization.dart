@@ -14,37 +14,38 @@ import "dart:io";
 import "package:serialization/src/custom_rule_generator.dart";
 
 main() {
+  // Generate rules for test_models.dart and test_models_for_maps.dart.
   var contents = new File("transformer/test_models.dart").readAsStringSync();
-  var results = analyzeAsset(
+  var results1 = analyzeAsset(
       contents,
       listFormat : true,
       processAllClasses: true);
-  results.setImportStatementFromPath("transformer/test_models.dart");
-  var outFile = new File("test_models_serialization_rules.dart");
-  String fileCode = generateSerializationRulesFileCode([results]);
-  outFile.writeAsStringSync(fileCode);
-
-  contents = new File("transformer/test_models_for_maps.dart")
-      .readAsStringSync();
-  results = analyzeAsset(
-      contents,
-      listFormat : false,
-      processAllClasses: true);
-  results.setImportStatementFromPath("transformer/test_models_for_maps.dart");
-  outFile = new File("test_models_for_maps_serialization_rules.dart");
-  fileCode = generateSerializationRulesFileCode([results]);
-  outFile.writeAsStringSync(fileCode);
+  results1.setImportStatementFromPath("transformer/test_models.dart");
 
   contents = new File("transformer/test_models_for_annotation.dart")
-      .readAsStringSync();
-  results = analyzeAsset(
+  .readAsStringSync();
+  var results2 = analyzeAsset(
       contents,
       listFormat : false,
       processAllClasses: false,
       processAnnotatedClasses: true);
-  results.setImportStatementFromPath(
+  results2.setImportStatementFromPath(
       "transformer/test_models_for_annotation.dart");
-  outFile = new File("test_models_for_annotation_serialization_rules.dart");
+
+  var outFile = new File("generated_serialization_rules.dart");
+  var fileCode = generateSerializationRulesFileCode([results1, results2]);
+  outFile.writeAsStringSync(fileCode);
+
+  // Generate rules for
+  contents = new File("transformer/test_models_for_maps.dart")
+  .readAsStringSync();
+  var results = analyzeAsset(
+      contents,
+      listFormat : false,
+      processAllClasses: true);
+  results.setImportStatementFromPath("transformer/test_models_for_maps.dart");
+
+  outFile = new File("generated_serialization_rules_for_maps.dart");
   fileCode = generateSerializationRulesFileCode([results]);
   outFile.writeAsStringSync(fileCode);
 }

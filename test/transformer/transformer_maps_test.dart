@@ -18,11 +18,22 @@ part "transformer_test_core.dart";
 /// We pretend that our main rule, [ThingWithDateSerializatinoRule] is generated
 /// so we can't or don't want to just modify it, so instead we subclass and
 /// modify the data before calling it.
-class SpecialThingWithDateRule extends ThingWithDateSerializationRule {
+class SpecialThingWithDateRule extends CustomRule {
+
+  CustomRule generated;
+
+  SpecialThingWithDateRule() {
+    generated = Serialization.automaticRules[ThingWithDate]();
+  }
+
+  create(state) => generated.create(state);
+  bool appliesTo(x, _) => generated.appliesTo(x, _);
+  getState(instance) => generated.getState(instance);
+
   setState(object, state) {
     var newState = new Map()..addAll(state);
     newState["d"] = DateTime.parse(newState["d"]);
-    super.setState(object, newState);
+    generated.setState(object, newState);
   }
 }
 

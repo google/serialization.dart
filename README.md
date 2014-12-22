@@ -85,10 +85,11 @@ Serialization instances or replace the generated one:
 
 You can set the name of the file containing all the generated rules with
 `rules_file_name: 'my_generated_rules_file_name.dart'` this could be useful in
-the uncommon case where you need to generate rules in different files. For
-instance if you have conflicting Classes names you could use this alongside
+the case where you need to generate rules with different settings. For
+instance if you generate rules as `map` output for a set of files and `list`
+output for another set of files. In order to do this you would use
 `$include: ["file.dart", "file2.dart"]` to run the transformer multiple times
-on separate part of your project.
+on separate part of your project. The `test` directory shows an example of this.
 
 Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve

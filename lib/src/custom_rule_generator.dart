@@ -29,6 +29,10 @@ const String GENERATED_RULES_MARKER = "//{{GENERATED_RULES_MARKER}}";
 /// where the [Map] of generated rules must be appended.
 const String GENERATED_RULES_MAP_MARKER =  "//{{GENERATED_RULES_MAP_MARKER}}";
 
+/// This string can be found in the generated rules and imports. It is used as
+/// the name of an `as` in the import statement to avoid import conflicts.
+const String AS_PLACEHOLDER = "{{AS_PLACEHOLDER}}";
+
 /// Given the [contents] of a Dart source library, generate
 /// [CustomRule]s hard-coded and other information for those classes and return.
 ///
@@ -88,7 +92,8 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
   var rules = classes.map(
       (each) => new CustomRuleGenerator(each, listFormat)).toList();
   var mapOfRuleNamesToRules = "\n" + rules
-      .map((x) => "      ${x._declaration.name}: () => new ${x.ruleName}(),")
+      .map((x) => "      {{AS_PLACEHOLDER}}.${x._declaration.name}: () => new "
+          "$AS_PLACEHOLDER${x.ruleName}(),")
       .join("\n");
   var ruleDeclarations = rules.map((x) => x.rule).join("\n\n") + "\n\n";
 
@@ -139,16 +144,18 @@ class AssetSerializationAnalysisResults {
     String topDir = splitPath.removeAt(0);
     if (topDir == "lib") {
       importStatement =
-          "import 'package:${id.package}/${path.joinAll(splitPath)}';\n";
+          "import 'package:${id.package}/${path.joinAll(splitPath)}' "
+          "as $AS_PLACEHOLDER;\n";
     } else {
-      importStatement = "import '${path.joinAll(splitPath)}';\n";
+      importStatement = "import '${path.joinAll(splitPath)}'"
+          " as $AS_PLACEHOLDER;\n";
     }
   }
 
   /// Generates the import statement so that it imports the file at the given
   /// [path].
   void setImportStatementFromPath(String path) {
-    importStatement = "import '${path}';\n";
+    importStatement = "import '${path}' as $AS_PLACEHOLDER;\n";
   }
 }
 
@@ -159,16 +166,28 @@ String generateSerializationRulesFileCode(
   File templateFile = new File(GENERATED_RULES_TEMPLATE_PATH);
   String template = templateFile.readAsStringSync();
 
+  String asStatementPrefix = "_";
+  int asStatementCounter = 0;
+
   for (AssetSerializationAnalysisResults result in results) {
+    // Add the import statement.
     if (result.importStatement != null) {
       template = template.replaceFirst(GENERATED_IMPORTS_MARKER,
-          result.importStatement + GENERATED_IMPORTS_MARKER);
+          // Sets the "as" import statement.
+          result.importStatement.replaceAll(AS_PLACEHOLDER,
+              "$asStatementPrefix$asStatementCounter")
+              + GENERATED_IMPORTS_MARKER);
     }
+    // Add the generated rules.
     template = template.replaceFirst(GENERATED_RULES_MARKER,
         result.generatedRule + GENERATED_RULES_MARKER);
     template = template.replaceFirst(GENERATED_RULES_MAP_MARKER,
         GENERATED_RULES_MAP_MARKER + result.ruleMapEntry);
+    template = template.replaceAll(AS_PLACEHOLDER,
+        "$asStatementPrefix$asStatementCounter");
+    asStatementCounter++;
   }
+
   return template;
 }
 
@@ -212,9 +231,9 @@ class CustomRuleGenerator {
 
   /// The header for a generated SerializationRule.
   String get header => '''
-class $ruleName extends CustomRule {
-  bool appliesTo(instance, _) => instance.runtimeType == $targetName;
-  create(state) => new $targetName$constructorName($constructorArgumentString);
+class $AS_PLACEHOLDER$ruleName extends CustomRule {
+  bool appliesTo(instance, _) => instance.runtimeType == $AS_PLACEHOLDER.$targetName;
+  create(state) => new $AS_PLACEHOLDER.$targetName$constructorName($constructorArgumentString);
   getState(instance) => $collectionStart
 ''';
 
@@ -246,7 +265,7 @@ class $ruleName extends CustomRule {
 
   /// The bottom part of the SerializationRule class definition.
   get footer =>
-      '$collectionEnd;\n' '  void setState($targetName instance, state) {\n'
+      '$collectionEnd;\n' '  void setState($AS_PLACEHOLDER.$targetName instance, state) {\n'
       '$setFields${hasFields ? ";\n" : ""}' '  }\n' '}';
 
   /// The class definition of the generated SerializationRule.

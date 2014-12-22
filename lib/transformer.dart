@@ -190,7 +190,8 @@ class SerializationTransformer extends AggregateTransformer {
 
     assetsFuture.then((List<Asset> assets) {
 
-      // Save what's the current project's package so we can differentiate the imported Assets (which we can't write to).
+      // Save what's the current project's package so we can differentiate the
+      // imported Assets (which we can't write to).
       String mainPackage = assets[0].id.package;
 
       // Add the packaged files defined in pubspec to the list of assets.
@@ -238,7 +239,9 @@ class SerializationTransformer extends AggregateTransformer {
           if (results.importsSerialization && (id.package == mainPackage)) {
             Asset newAsset =
                 replaceSerializationImport(content, id, rulesFileName);
-            transform.addOutput(newAsset);
+            if (newAsset != null) {
+              transform.addOutput(newAsset);
+            }
             if (_settings.mode == BarbackMode.DEBUG) {
               transform.logger.info("Auto-imported serialization rules in $id");
             }
@@ -269,7 +272,14 @@ class SerializationTransformer extends AggregateTransformer {
   /// Replaces the Serialization imports with the generated rules file import
   /// given as [rulesFileName].
   /// Returns a new Asset with the new content.
-  static Asset replaceSerializationImport(String content, AssetId id, String rulesFileName) {
+  static Asset replaceSerializationImport(String content, AssetId id,
+                                          String rulesFileName) {
+
+    // We don't replace the import on previously generated rules files.
+    if(content.contains("library generated_serialization_rules;")) {
+      return null;
+    }
+
     String newImport = rulesFileName;
     int pathDepth = path.split(id.path).length - 2;
     for (int i = 0; i < pathDepth; i++) {

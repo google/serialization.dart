@@ -11,18 +11,16 @@ dependencies:
 dev_dependencies:
   unittest: '>=0.9.0 <0.12.0'
 transformers:
-- serialization :
-    files:
-    - test/transformer/test_models.dart
-    rules_file_name: 'test_models_serialization_rules.dart'
-    $include: ["test/transformer/test_models.dart", "test/transformer/transformer_test.dart"]
-- serialization :
+- serialization:
+    $include: ["test/transformer/test_models_for_maps.dart",
+               "test/transformer/transformer_maps_test.dart"]
     files:
     - test/transformer/test_models_for_maps.dart
     format: 'maps'
-    rules_file_name: 'test_models_for_maps_serialization_rules.dart'
-    $include: ["test/transformer/test_models_for_maps.dart", "test/transformer/transformer_maps_test.dart"]
-- serialization :
+    rules_file_name: 'generated_serialization_rules_for_maps.dart'
+- serialization:
+    $exclude: ["test/transformer/test_models_for_maps.dart",
+               "test/transformer/transformer_maps_test.dart"]
     use_annotation: true
-    rules_file_name: 'test_models_for_annotation_serialization_rules.dart'
-    $include: ["test/transformer/test_models_for_annotation.dart", "test/transformer/transformer_annotation_test.dart"]
+    files:
+    - test/transformer/test_models.dart
