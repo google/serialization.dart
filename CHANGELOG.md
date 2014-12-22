@@ -3,6 +3,9 @@
     `generated_serialization_rules.dart` that contains all the generated
     serialization rules for the project. The file is imported automatically and
     serialization rules are added automatically by default.
+  * BREAKING CHANGE: The way the files to process are listed in the
+    `pubspec.yaml` has changed.
+  * Added a way to specify classes to serialize with an annotation.
 
 ## 0.10.3
   * Clean up setup for serialization. Adds `addRules`,
