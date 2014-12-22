@@ -5,7 +5,7 @@
 library transformer_test;
 
 import "test_models_for_maps.dart";
-import "../test_models_for_maps_serialization_rules.dart";
+import "package:serialization/serialization.dart";
 import "package:unittest/unittest.dart";
 
 part "transformer_test_core.dart";
