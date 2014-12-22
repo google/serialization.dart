@@ -4,7 +4,7 @@
 
 /// Very simple models used for testing the transformer that generates
 /// serialization rules.
-library test_models;
+library test_models_for_annotation;
 
 import "package:serialization/serialization.dart" show Serializable;
 
