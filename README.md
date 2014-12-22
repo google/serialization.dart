@@ -50,7 +50,7 @@ To use the transformer, include something in the pubspec like:
 
 There are two ways to specify which Classes needs serialization:
 
- - You can annotate your classes with `@Serialization()` and specify the
+ - You can annotate your classes with `@Serializable()` and specify the
    `use_annotation: true` parameter in the transformer. This only works for files
    part of your project. It won;t work for files part of imported packages.
  - You can list the Dart files in the `files:` parameter as shown above. In this
