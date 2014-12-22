@@ -7,7 +7,8 @@
 /// using the transformer. Useful for debugging the transformer, or as
 /// a model if you want to generate the rules and modify them or use them
 /// as examples. See the comment for transformer.dart for more details.
-/// This should be executed from the root of the test folder.
+/// This should be executed from the root of the test folder so that the files
+/// get generated at the same place as the transformer does.
 library generate_standalone;
 
 import "dart:io";
