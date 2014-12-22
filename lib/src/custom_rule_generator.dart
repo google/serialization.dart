@@ -50,8 +50,8 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
     libraryName = "${partOf.libraryName}";
   } else {
     LibraryDirective library = lib.directives.firstWhere(
-            (x) => x is LibraryDirective);
-    libraryName = "${library.name}";
+            (x) => x is LibraryDirective, orElse: () => null);
+    libraryName = library == null ? "__default" : "${library.name}";
   }
 
   // Find out if the file has a "package:serialization/serialization.dart" or a
