@@ -504,15 +504,21 @@ class SerializationException implements Exception {
   String toString() => "SerializationException($message)";
 }
 
-/// Class declarations annotated with @[Serializable] will be discovered by the
-/// transformer and get a generated rule. To enable this feature a transformer
-/// with option `annotated: true` must be added to the pubspec.yaml:
+/// Class declarations annotated with `@Serializable()` will be discovered by
+/// the transformer and get a generated rule. To enable this feature a
+/// transformer with option `use_annotation: true` must be added to the
+/// pubspec.yaml:
 ///
 ///    transformers:
 ///    - serialization :
-///      useAnnotation: true
+///      use_annotation: true
 ///
 /// For more detailed instructions refer to the [README](/README.md).
 class Serializable {
   const Serializable();
 }
+
+/// Alias for the `@Serializable()` annotation. You can also annotate the
+/// classes that need to be serialized with `@serializable`.
+/// See [Serializable] comments for more details.
+const Object serializable = const Serializable();

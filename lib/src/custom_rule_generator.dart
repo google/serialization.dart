@@ -76,7 +76,8 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
     if (x is ClassDeclaration) {
       if (processAllClasses) return true;
       else return processAnnotatedClasses
-          && x.metadata.any((m) => "${m.name}" == "$Serializable");
+          && x.metadata.any((m) => "${m.name}" == "$Serializable"
+                                   || "${m.name}" == "serializable");
     }
     return false;
   });

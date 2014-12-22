@@ -15,7 +15,7 @@ class Thing {
   List<String> things;
 }
 
-@Serializable()
+@serializable
 class OtherThing {
   OtherThing.constructor();
   int a, b;
