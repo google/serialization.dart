@@ -21,7 +21,7 @@ transformers:
     - test/transformer/test_models_for_maps.dart
     format: 'maps'
     rules_file_name: 'test_models_for_maps_serialization_rules.dart'
-    $include: ["test/transformer/test_models_for_map.dart", "test/transformer/transformer_maps_test.dart"]
+    $include: ["test/transformer/test_models_for_maps.dart", "test/transformer/transformer_maps_test.dart"]
 - serialization :
     use_annotation: true
     rules_file_name: 'test_models_for_annotation_serialization_rules.dart'
