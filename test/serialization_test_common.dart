@@ -224,9 +224,9 @@ commonTests() {
     var s = newSerializationList();
     for (var eachFormat in formats) {
       var result = writeAndReadBack(s, eachFormat, [a1]);
-    var a2 = result.first;
-    expect(a2.street, "N 34th");
-    expect(a2.city, "Seattle");
+      var a2 = result.first;
+      expect(a2.street, "N 34th");
+      expect(a2.city, "Seattle");
     }
   });
 
@@ -290,18 +290,6 @@ commonTests() {
     expect(map["abc"], 1);
     expect(map["def"], "ghi");
     expect(map["person"] is Reference, isTrue);
-  });
-
-  test('round-trip, default format, pass to isolate', () {
-      Node n1 = new Node("1"), n2 = new Node("2"), n3 = new Node("3");
-      n1.children = [n2, n3];
-      n2.parent = n1;
-      n3.parent = n1;
-      var s = nodeSerializerNonReflective(n1);
-      var output = s.write(n2);
-      ReceivePort port = new ReceivePort();
-      var remote = Isolate.spawn(echo, [output, port.sendPort]);
-      port.first.then(verify);
   });
 }
 
