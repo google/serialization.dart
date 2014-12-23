@@ -10,6 +10,9 @@ test/transformer/*: Skip
 
 [ $runtime == dartium ]
 test/isolate_test: Skip # Can't use spawn with a function in Dartium
+build/test/isolate_test: Skip
 
 [ $compiler == dart2js || $runtime == vm ]
 test/isolate_dartium_test: Skip # Can't spawnUri a data URI in JS or VM
+build/test/isolate_dartium_test: Skip
+
