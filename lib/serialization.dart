@@ -153,7 +153,7 @@
  * Or, using a [Writer] explicitly
  *      var writer = serialization.newWriter(new SimpleFlatFormat());
  *      List output = writer.write(address);
- * 
+ *
  * It's also possible to create a serialization with a default format.
  *     Serialization s = new Serialization(format: const SimpleJsonFormat());
  *
@@ -243,6 +243,16 @@ class Serialization {
    * is off by default.
    */
   bool _selfDescribing;
+
+ /**
+  * Gives a pointer to all of the generated rules constructors.
+  * All the rules listed below are added automatically to newly instantiated
+  * Serialization objects.
+  * This is empty by default and filled by the transformer.
+  * You can add/replace your own rules here and they will be automatically added
+  * to newly instantiated [Serialization] objects.
+  */
+  static Map<Type, Function> automaticRules = {};
 
   /**
    * When we write out data using this serialization, should we also write
@@ -493,3 +503,22 @@ class SerializationException implements Exception {
   const SerializationException(this.message);
   String toString() => "SerializationException($message)";
 }
+
+/// Class declarations annotated with `@Serializable()` will be discovered by
+/// the transformer and get a generated rule. To enable this feature a
+/// transformer with option `use_annotation: true` must be added to the
+/// pubspec.yaml:
+///
+///    transformers:
+///    - serialization :
+///      use_annotation: true
+///
+/// For more detailed instructions refer to the [README](/README.md).
+class Serializable {
+  const Serializable();
+}
+
+/// Alias for the `@Serializable()` annotation. You can also annotate the
+/// classes that need to be serialized with `@serializable`.
+/// See [Serializable] comments for more details.
+const Object serializable = const Serializable();

@@ -55,20 +55,28 @@
 ///  object or how to recreate it. That's the job of an
 ///  AddressSerializationRule.
 ///
-///  This transformer generates rules like the above for each class in
+///  This transformer generates rules like the above for each of the classes in
 ///  the libraries that are listed in the pubspec.
 ///
 /// ## Usage
 /// In your pubpsec
 ///
 ///     transformers:
-///       - serialization :
-///         $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
-///         format: <"lists"|"maps">
+///     - serialization :
+///       use_annotation: true
+///       files:
+///       - bin/stuff.dart
+///       - lib/more_stuff.dart
+///       format: <"lists"|"maps">
 ///
-/// For each library 'foo' listed in the $include section this will
-/// generate a `foo_serialization_rules.dart` library with serialization
-/// rules for those classes.
+/// For each of the classes defined in one of the files listed in the `files:`
+/// section and for each of the classes annotated with @Serializable()
+/// (if `use_annotation: true` is used) a serialization rule will be generated.
+///
+/// All the generated serialization rules are added to
+/// `generated_serialization_rules.dart` files located at the base of the
+/// project directories in build (bin, web etc...) and in the
+/// packages/<package-name>/ if a 'lib' directory was present.
 ///
 /// The format option can be either 'lists' or 'maps'. The default is
 /// 'lists'. If
@@ -79,12 +87,12 @@
 /// If 'maps', then the generated rule reads and writes maps from field
 /// names to field values. This format is easier to debug.
 ///
-///  You can use the generated rules by adding them to a [Serialization].
+/// The transformer will automatically add the generated rules to the
+/// Serialization objects. To serialize objects use:
 ///
-///     import 'package:my_package/stuff_serialization_rules.dart' as foo;
+///     import 'package:serialization/serialization.dart';
 ///     ...
 ///     var serialization = new Serialization();
-///     foo.rules.values.forEach(serialization.addRule);
 ///     ...
 ///     sendToClient(serialization.write(somePerson));
 ///
@@ -107,44 +115,237 @@
 ///
 /// If the generated rule is not adequate for a particular class, or a class
 /// that's not in one of these libraries needs to be serialized, it's
-/// possible to write a different rule and use it instead. Just
-/// add that rule to the Serialization instead of the generated one. This
-/// transformer can also be used as an example for a more sophisticated version,
-/// which can be customized to the way classes in a particular project are
-/// structured.
+/// possible to write a different serialization rule and use it instead. Just
+/// add that rule to the Serialization instead of the generated one. Pass your
+/// custom serialization rules in the constructor:
+///
+///    Map<Type, SerializationRule> custom = {Dog: myCustomDogRule};
+///    var serialization = new Serialization(customRules: custom);
+///
+/// This transformer can also be used as an example for a more sophisticated
+/// version, which can be customized to the way classes in a particular project
+/// are structured.
 library serialization_transformer;
 
+import "dart:async";
 import "package:barback/barback.dart";
 import "package:path/path.dart" as path;
 import "package:serialization/src/custom_rule_generator.dart";
 
+class SerializationTransformer extends AggregateTransformer {
 
-class SerializationTransformer extends Transformer {
+
+  /// File copied from the template where the generated rules are written.
+  static const String GENERATED_RULES_FILE_NAME =
+      "generated_serialization_rules.dart";
+
+  /// URI that is imported in source files when using serialization.
+  static const String SERIALIZATION_IMPORT =
+      "package:serialization/serialization.dart";
+
   BarbackSettings _settings;
 
   get allowedExtensions => ".dart";
 
   SerializationTransformer.asPlugin(this._settings);
 
-  apply(Transform t) {
-    return t.readInputAsString(t.primaryInput.id).then((contents) {
-      var id = t.primaryInput.id;
-      var fileName = path.url.withoutExtension(id.path);
-      var format = _settings.configuration['format'];
-      var useLists = format == null || format == 'lists';
-      var text = generateCustomRulesFor(
-          contents,
-          listFormat: useLists,
-          libraryName: path.url.basename(fileName),
-          originalImport: path.url.basename(id.path));
-      var newId =
-          new AssetId(id.package, "${fileName}_serialization_rules.dart");
-      // Remove the leading /lib on the file name.
-      var fileNameInPackage = path.joinAll(path.split(id.path).skip(1));
-      if (_settings.mode == BarbackMode.DEBUG) {
-        t.logger.info("Generated serialization rules in $newId");
-      }
-      t.addOutput(new Asset.fromString(newId, text));
-    });
+  String classifyPrimary(AssetId id) {
+    // Only process Dart files.
+    if (!id.path.endsWith(allowedExtensions)) return null;
+    // All assets processed at once.
+    return "allAssets";
   }
+
+  apply(AggregateTransform transform) {
+
+    Completer completer = new Completer();
+
+    // Extracting settings.
+    bool useAnnotation = _settings.configuration['use_annotation'];
+    List<String> files = _settings.configuration['files'];
+    String rulesFileName = _settings.configuration['rules_file_name'];
+    if (rulesFileName == null) {
+      rulesFileName = GENERATED_RULES_FILE_NAME;
+    }
+    if (files == null) files = new List();
+    String format = _settings.configuration['format'];
+    bool useLists = format == null || format == 'lists';
+
+    // Create an Asset for each package file path defined in the pubspec
+    // transformer attribute.
+    List<String> packageFiles = files.where(
+        (String s) => s.startsWith("package:"));
+    List<Asset> packageAssets = new List();
+    packageFiles.forEach((String packageFile){
+      List<String> packageFilePathSplit =
+          packageFile.replaceFirst("package:", "").split("/");
+      String filePath = path.joinAll(
+          new List.from(packageFilePathSplit)..insert(0, "packages"));
+      String packageName = packageFilePathSplit.removeAt(0);
+      String barbackPath = path.joinAll(
+          new List.from(packageFilePathSplit)..insert(0, "lib"));
+      AssetId assetId = new AssetId(packageName, barbackPath);
+      packageAssets.add(new Asset.fromPath(assetId, filePath));
+    });
+
+    // Get the list of assets.
+    Future<List<Asset>> assetsFuture = transform.primaryInputs.toList();
+
+    assetsFuture.then((List<Asset> assets) {
+
+      // Save what's the current project's package so we can differentiate the
+      // imported Assets (which we can't write to).
+      String mainPackage = assets[0].id.package;
+
+      // Add the packaged files defined in pubspec to the list of assets.
+      assets.addAll(packageAssets);
+
+      // Map of Libraries => [AssetId] to import.
+      Map<String, AssetId> librariesPath = new Map();
+
+      // All Generated Rule Code to include in the Template file.
+      List<AssetSerializationAnalysisResults> allGeneratedRuleCodes =
+          new List();
+
+      transform.logger.info("Got template and ${assets.length} assets.");
+
+      // Build the list of Future reads of all assets because we'll want to
+      // process them sequentially.
+      Future.forEach(assets, (Asset asset) {
+        var id = asset.id;
+        return asset.readAsString()..then((String content) {
+
+          // Get code to inject in the template for the current asset.
+          AssetSerializationAnalysisResults results = analyzeAsset(
+              content,
+              listFormat: useLists,
+              processAnnotatedClasses: useAnnotation,
+              processAllClasses: files.contains(id.path)
+                  || (id.package != mainPackage));
+
+          // If there are generated rules we'll add them to the template.
+          if (results.generatedRule != null) {
+            allGeneratedRuleCodes.add(results);
+            if (_settings.mode == BarbackMode.DEBUG) {
+              transform.logger.info("Compiled serialization rules for $id");
+            }
+          }
+          // Keep track of all main libraries files. This will be useful to know
+          // which files to import in the case of "part of" files.
+          if (!results.isPartOf) {
+            librariesPath[results.library] = id;
+          }
+
+          // List all assets that import the serialization package. We only do
+          // that for assets in the current package because transformers can't
+          // modify files outside the current package.
+          if (results.importsSerialization && (id.package == mainPackage)) {
+            Asset newAsset =
+                replaceSerializationImport(content, id, rulesFileName);
+            if (newAsset != null) {
+              transform.addOutput(newAsset);
+            }
+            if (_settings.mode == BarbackMode.DEBUG) {
+              transform.logger.info("Auto-imported serialization rules in $id");
+            }
+          }
+        });
+      }).then((_){
+        // Generate the files containing the serialization rules and add them to
+        // the transformer output.
+        List<Asset> newAssets = generateSerializationRulesAsset(
+            allGeneratedRuleCodes, librariesPath, mainPackage, rulesFileName,
+            transform.logger);
+        newAssets.forEach(transform.addOutput);
+
+        if (_settings.mode == BarbackMode.DEBUG) {
+          for (Asset asset in newAssets) {
+            transform.logger.info(
+                "Generated serialization file ${asset.id.path}.");
+          }
+        }
+
+        completer.complete();
+      });
+    });
+
+    return completer.future;
+  }
+
+  /// Replaces the Serialization imports with the generated rules file import
+  /// given as [rulesFileName].
+  /// Returns a new Asset with the new content.
+  static Asset replaceSerializationImport(String content, AssetId id,
+                                          String rulesFileName) {
+
+    // We don't replace the import on previously generated rules files.
+    if(content.contains("library generated_serialization_rules;")) {
+      return null;
+    }
+
+    String newImport = rulesFileName;
+    int pathDepth = path.split(id.path).length - 2;
+    for (int i = 0; i < pathDepth; i++) {
+      newImport = "../$newImport";
+    }
+    content = content.replaceAll(SERIALIZATION_IMPORT, newImport);
+
+    return new Asset.fromString(id, content);
+  }
+
+  /// Generates the files containing the serialization rules.
+  static List<Asset> generateSerializationRulesAsset(
+      List<AssetSerializationAnalysisResults> generatedRuleCodes,
+      Map<String, AssetId> librariesPath, String mainPackage,
+      String rulesFileName, TransformLogger logger) {
+
+    // Map of importable Rules for each top directory.
+    Map<String, List<AssetSerializationAnalysisResults>>
+        importableRulesPerTopDir = new Map();
+    librariesPath.values.forEach((AssetId assetId){
+      // Getting top directory of the assets to import ("lib", "bin", "web").
+      if (assetId.package == mainPackage) {
+        String dir = path.split(assetId.path)[0];
+        importableRulesPerTopDir[dir] = new List();
+      }
+    });
+
+    // Adding generated rules code and imports to the Generated Rules Files.
+    for(AssetSerializationAnalysisResults results in generatedRuleCodes) {
+
+      // Finding AssetId to import.
+      AssetId toImport = librariesPath[results.library];
+      if (toImport == null) {
+        logger.warning("Unable to add Serialization rules of library "
+            "${results.library} becasue we couldn't find the file to import. "
+            "This is likely happening becasue one of the files listed in the "
+            "transfomer is a `part of` but the main library file was not also "
+            "listed.");
+      }
+
+      // Generate the import statement in the result.
+      results.setImportStatementFromAsset(toImport);
+
+      // filter out files that can be imported for each top directory.
+      for (String topDir in importableRulesPerTopDir.keys) {
+        String topDirForImport = path.split(toImport.path)[0];
+        if (topDirForImport == "lib" || topDirForImport == topDir) {
+          importableRulesPerTopDir[topDir].add(results);
+        }
+      }
+    }
+
+    // Creating new assets with the generated code.
+    List<Asset> newAssets = new List();
+    for (String topDir in importableRulesPerTopDir.keys) {
+      String code = generateSerializationRulesFileCode(
+          importableRulesPerTopDir[topDir]);
+      AssetId generatedRulesAssetId = new AssetId(mainPackage,
+          "$topDir/$rulesFileName");
+      newAssets.add(new Asset.fromString(generatedRulesAssetId, code));
+    }
+    return newAssets;
+  }
+
+
 }

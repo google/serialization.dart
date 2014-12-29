@@ -1,5 +1,5 @@
 name: serialization
-version: 0.10.3
+version: 0.11.0
 author: Alan Knight <alanknight@google.com>
 description: Provide a serialization facility for Dart objects.
 homepage: https://github.com/google/serialization.dart
@@ -11,8 +11,16 @@ dependencies:
 dev_dependencies:
   unittest: '>=0.9.0 <0.12.0'
 transformers:
-  - serialization :
-      $include: ["test/transformer/test_models.dart"]
-  - serialization : 
-      $include: ["test/transformer/test_models_for_maps.dart"]
-      format: "maps"
+- serialization:
+    $include: ["test/transformer/test_models_for_maps.dart",
+               "test/transformer/transformer_maps_test.dart"]
+    files:
+    - test/transformer/test_models_for_maps.dart
+    format: 'maps'
+    rules_file_name: 'generated_serialization_rules_for_maps.dart'
+- serialization:
+    $exclude: ["test/transformer/test_models_for_maps.dart",
+               "test/transformer/transformer_maps_test.dart"]
+    use_annotation: true
+    files:
+    - test/transformer/test_models.dart

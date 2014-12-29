@@ -35,22 +35,63 @@ or
 
     import "package:serialization/serialization_mirrors.dart"
 
-depending on whether or not you want the mirrored rules. These are
+depending on whether or not you want the mirrored rules. The mirror rules are
 more convenient, but cause increased code size in dartj2s.
 
-To use the transformer, include something in the pubspec like
+To use the transformer, include something in the pubspec like:
 
      transformers:
-       - serialization :
-         $include: ["lib/stuff.dart", "lib/more_stuff.dart"]
+     - serialization :
+       use_annotation: true
+       files:
+       - bin/stuff.dart
+       - lib/more_stuff.dart
+       - package:package_name/imported_stuff.dart
 
-Then, set up the generated rules in a Serialization instance, and then call
-write(). The serialization rules will be named as
-the name of the model file with `_serialization_rules` appended to it,
-so in the case of `stuff.dart`, `stuff_serialization_rules.dart`, in
-the same directory as the original.
+There are two ways to specify which Classes needs serialization:
 
-Normally you won't ever see these files, because the
+ - You can annotate your classes with `@Serializable()` and specify the
+   `use_annotation: true` parameter in the transformer. This only works for files
+   part of your project. It won;t work for files part of imported packages.
+ - You can list the Dart files in the `files:` parameter as shown above. In this
+   case a Serialization rule will be generated for all the Classes in these
+   files.
+
+A file named `generated_serialization_rules.dart` containing all the
+Serialization rules is created and imported automatically in your project. It
+effectively overrides `Serialization` and provides a link to all generated rules
+in `Serialization.automaticRules: Map<Type, Function>`. All these
+rules are automatically add when creating a `new Serialization()` but if you'd
+like to use one individually you can get an instance with:
+
+    CustomRule personRule = serialization.automaticRules[Person]();
+
+You can also choose to remove a generated serialization rule by doing Although
+beware as this is a static member and doing so will potentially remove it for
+all instances of Serialization:
+
+    Serialization.automaticRules.remove(Person);
+
+You can add your own manually written rule to a Serialization instance:
+
+    Serialization serialization = new Serialization();
+    serialization.addRule(new MyPersonSerializationRule());
+
+It could also be more convenient to add your own manually written rule to all
+Serialization instances or replace the generated one:
+
+    Serialization.automaticRules[MyPerson] =
+        () => new MyPersonSerializationRule();
+
+You can set the name of the file containing all the generated rules with
+`rules_file_name: 'my_generated_rules_file_name.dart'` this could be useful in
+the case where you need to generate rules with different settings. For
+instance if you generate rules as `map` output for a set of files and `list`
+output for another set of files. In order to do this you would use
+`$include: ["file.dart", "file2.dart"]` to run the transformer multiple times
+on separate part of your project. The `test` directory shows an example of this.
+
+Normally you won't ever see the generated files, because the
 transformer creates it on the fly and it is sent directly to pub serve
 or to dart2js without ever being written to disk.
 To see the generated code, run pub build in debug mode, e.g.
@@ -59,10 +100,9 @@ using these files, then
 
     pub build --mode=debug bin
 
-would generate the code for that, and also log which
-files were generated, in the form
+would generate the code for that. You can then have a look at the file:
 
-    Generated serialization rules in my_package|lib/stuff_serialization_rules.dart
+    build/bin/generated_serialization_rules.dart
 
 It's also possible to run the transformer's code outside of the
 transformer, which is helpful for debugging or to use the code in a
@@ -71,12 +111,11 @@ an example of that.
 
 The bin directory code would look something like.
 
-    import 'package:my_package/stuff_serialization_rules.dart' as foo;
-     ...
-     var serialization = new Serialization();
-     foo.rules.values.forEach(serialization.addRule);
-     ...
-     sendToClient(serialization.write(somePerson));
+    import 'package:serialization/serialization.dart';
+    ...
+    var serialization = new Serialization();
+    ...
+    sendToClient(serialization.write(somePerson));
 
 and on the client, do something like
 

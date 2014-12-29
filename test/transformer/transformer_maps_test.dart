@@ -4,9 +4,8 @@
 
 library transformer_test;
 
-import "package:serialization/serialization.dart";
 import "test_models_for_maps.dart";
-import "test_models_for_maps_serialization_rules.dart";
+import "package:serialization/serialization.dart";
 import "package:unittest/unittest.dart";
 
 part "transformer_test_core.dart";
@@ -19,11 +18,22 @@ part "transformer_test_core.dart";
 /// We pretend that our main rule, [ThingWithDateSerializatinoRule] is generated
 /// so we can't or don't want to just modify it, so instead we subclass and
 /// modify the data before calling it.
-class SpecialThingWithDateRule extends ThingWithDateSerializationRule {
+class SpecialThingWithDateRule extends CustomRule {
+
+  CustomRule generated;
+
+  SpecialThingWithDateRule() {
+    generated = Serialization.automaticRules[ThingWithDate]();
+  }
+
+  create(state) => generated.create(state);
+  bool appliesTo(x, _) => generated.appliesTo(x, _);
+  getState(instance) => generated.getState(instance);
+
   setState(object, state) {
     var newState = new Map()..addAll(state);
     newState["d"] = DateTime.parse(newState["d"]);
-    super.setState(object, newState);
+    generated.setState(object, newState);
   }
 }
 
@@ -39,7 +49,7 @@ class DateAsStringRule extends SerializationRule {
   bool get storesStateAsPrimitives => true;
 }
 
-formatSpecificTests(serialization1, serialization2) {
+specificTests(serialization1, serialization2) {
   test("Verify that we are actually writing in map format", () {
     var written = serialization1.write(thing1);
     expect(written is Map, isTrue);

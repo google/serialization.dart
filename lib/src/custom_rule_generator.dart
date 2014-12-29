@@ -6,43 +6,190 @@
 library custom_rule_generator;
 
 import "package:analyzer/analyzer.dart";
+import "package:serialization/serialization.dart" show Serializable;
+import "package:path/path.dart" as path;
+import "package:barback/barback.dart";
+import "dart:io";
+
+
+/// Template file which will be copied and where the generated rules will be
+/// written.
+const String GENERATED_RULES_TEMPLATE_PATH =
+    "packages/serialization/src/generated_serialization_rules.dart";
+
+/// This string can be found in the generated file. It indicates the location
+/// where the imports required for the generated code must be appended.
+const String GENERATED_IMPORTS_MARKER = "//{{GENERATED_IMPORTS_MARKER}}";
+
+/// This string can be found in the generated file. It indicates the location
+/// where the generated rules must be appended.
+const String GENERATED_RULES_MARKER = "//{{GENERATED_RULES_MARKER}}";
+
+/// This string can be found in the generated file. It indicates the location
+/// where the [Map] of generated rules must be appended.
+const String GENERATED_RULES_MAP_MARKER =  "//{{GENERATED_RULES_MAP_MARKER}}";
+
+/// This string can be found in the generated rules and imports. It is used as
+/// the name of an `as` in the import statement to avoid import conflicts.
+const String AS_PLACEHOLDER = "{{AS_PLACEHOLDER}}";
 
 /// Given the [contents] of a Dart source library, generate
-/// [CustomRule]s hard-coded for those classes and return a string
-/// representing the source of those new rules.
+/// [CustomRule]s hard-coded and other information for those classes and return.
 ///
 /// If [listFormat] is true, then the output of the rule will be a list
 /// of field values. If it is false, then the output is a map keyed by
-/// field name. The [libraryName] is used as the name of the
-/// generated library. It will import [originalImport] and expects that to
-/// contain the classes in [contents]. See the comment for transformer.dart.
-String generateCustomRulesFor(String contents,
-    {String libraryName, String originalImport, bool listFormat : true}) {
+/// field name. See the comment for transformer.dart.
+AssetSerializationAnalysisResults analyzeAsset(String contents,
+    {bool listFormat: true, processAnnotatedClasses: false,
+    processAllClasses: false}) {
 
   var lib = parseCompilationUnit(contents);
-  var classes = lib.declarations.where((x) => x is ClassDeclaration);
-  var rules =
-      classes.map((each) => new CustomRuleGenerator(each, listFormat)).toList();
-  var mapOfRuleNamesToRules = rules
-      .map((x) => "    '${x._declaration.name}' : new ${x.ruleName}()")
-      .join(",\n");
-  var ruleDeclarations = rules.map((x) => x.rule).join("\n\n");
 
-  return '''
-// Generated serialization rules. *** DO NOT EDIT ***
-// See transformer.dart in package serialization.
-library ${libraryName}_serialization_rules;
+  // Check if the file is a part of another or is the main library file and find
+  // the library name.
+  String libraryName;
+  PartOfDirective partOf = lib.directives.firstWhere(
+          (x) => x is PartOfDirective, orElse: () => null);
+  if(partOf != null) {
+    libraryName = "${partOf.libraryName}";
+  } else {
+    LibraryDirective library = lib.directives.firstWhere(
+            (x) => x is LibraryDirective, orElse: () => null);
+    libraryName = library == null ? "__default" : "${library.name}";
+  }
 
-import "package:serialization/serialization.dart";
-import "$originalImport";
+  // Find out if the file has a "package:serialization/serialization.dart" or a
+  // "package:serialization/serialization_mirrors.dart" import statement.
+  bool importsSerialization = lib.directives.firstWhere(
+      (x) => (x is ImportDirective) &&
+             "${x.uri}".contains("package:serialization/serialization.dart"),
+      orElse: () => null) != null;
 
-get rules => {
-$mapOfRuleNamesToRules
-};
+  bool importsSerializationMirror = lib.directives.firstWhere(
+      (x) => (x is ImportDirective) &&
+             "${x.uri}".contains("package:serialization/"
+                                 "serialization_mirrors.dart"),
+      orElse: () => null) != null;
 
-$ruleDeclarations
+  // Check if the classes are annotated with @Serializable
+  var classes = lib.declarations.where((x) {
+    if (x is ClassDeclaration) {
+      if (processAllClasses) return true;
+      else return processAnnotatedClasses
+          && x.metadata.any((m) => "${m.name}" == "$Serializable"
+                                   || "${m.name}" == "serializable");
+    }
+    return false;
+  });
 
-''';
+  // There was no class declaration in this file or they were not annotated with
+  // @Serializable when required.
+  if (classes.length == 0) {
+    return new AssetSerializationAnalysisResults(null, null, libraryName,
+        partOf != null, importsSerialization, importsSerializationMirror);
+  }
+
+  // Generate a Rule for each Class declarations.
+  var rules = classes.map(
+      (each) => new CustomRuleGenerator(each, listFormat)).toList();
+  var mapOfRuleNamesToRules = "\n" + rules
+      .map((x) => "      {{AS_PLACEHOLDER}}.${x._declaration.name}: () => new "
+          "$AS_PLACEHOLDER${x.ruleName}(),")
+      .join("\n");
+  var ruleDeclarations = rules.map((x) => x.rule).join("\n\n") + "\n\n";
+
+  return new AssetSerializationAnalysisResults(ruleDeclarations,
+      mapOfRuleNamesToRules, libraryName, partOf != null, importsSerialization,
+      importsSerializationMirror);
+}
+
+/// Contains the result of the file analysis by the Serialization transformer.
+class AssetSerializationAnalysisResults {
+
+  /// Code of all the generated serialization rules for this file.
+  final String generatedRule;
+
+  /// Code to add to the [Map] of all the serialization rules for each [Type]s.
+  final String ruleMapEntry;
+
+  /// Library name of the file.
+  final String library;
+
+  /// Import statement to use to for the serialization Rule. This can only be
+  /// known later in the case of "part of" files.
+  String importStatement;
+
+  /// True if the file is "part of" a library. False if it is the main library
+  /// file.
+  final bool isPartOf;
+
+  /// True if the file imports the Serialization package. aka it has the
+  /// following statement:
+  ///
+  ///     import "package:serialization/serialization.dart"...
+  final bool importsSerialization;
+
+  /// True if the file imports the Serialization with mirrors package. aka it
+  /// has the following statement:
+  ///
+  ///     import "package:serialization/serialization_mirrors.dart"...
+  final bool importsSerializationMirror;
+
+  AssetSerializationAnalysisResults(this.generatedRule,
+      this.ruleMapEntry, this.library, this.isPartOf, this.importsSerialization,
+      this.importsSerializationMirror);
+
+  /// Generates the import statement so that it imports this asset.
+  void setImportStatementFromAsset(AssetId id) {
+    List<String> splitPath = path.split(id.path);
+    String topDir = splitPath.removeAt(0);
+    if (topDir == "lib") {
+      importStatement =
+          "import 'package:${id.package}/${path.joinAll(splitPath)}' "
+          "as $AS_PLACEHOLDER;\n";
+    } else {
+      importStatement = "import '${path.joinAll(splitPath)}'"
+          " as $AS_PLACEHOLDER;\n";
+    }
+  }
+
+  /// Generates the import statement so that it imports the file at the given
+  /// [path].
+  void setImportStatementFromPath(String path) {
+    importStatement = "import '${path}' as $AS_PLACEHOLDER;\n";
+  }
+}
+
+/// Given a list of File results returns the code for the generated rules file.
+String generateSerializationRulesFileCode(
+    List<AssetSerializationAnalysisResults> results) {
+
+  File templateFile = new File(GENERATED_RULES_TEMPLATE_PATH);
+  String template = templateFile.readAsStringSync();
+
+  String asStatementPrefix = "_";
+  int asStatementCounter = 0;
+
+  for (AssetSerializationAnalysisResults result in results) {
+    // Add the import statement.
+    if (result.importStatement != null) {
+      template = template.replaceFirst(GENERATED_IMPORTS_MARKER,
+          // Sets the "as" import statement.
+          result.importStatement.replaceAll(AS_PLACEHOLDER,
+              "$asStatementPrefix$asStatementCounter")
+              + GENERATED_IMPORTS_MARKER);
+    }
+    // Add the generated rules.
+    template = template.replaceFirst(GENERATED_RULES_MARKER,
+        result.generatedRule + GENERATED_RULES_MARKER);
+    template = template.replaceFirst(GENERATED_RULES_MAP_MARKER,
+        GENERATED_RULES_MAP_MARKER + result.ruleMapEntry);
+    template = template.replaceAll(AS_PLACEHOLDER,
+        "$asStatementPrefix$asStatementCounter");
+    asStatementCounter++;
+  }
+
+  return template;
 }
 
 /// Generates serialization rules for simple classes.
@@ -85,9 +232,9 @@ class CustomRuleGenerator {
 
   /// The header for a generated SerializationRule.
   String get header => '''
-class $ruleName extends CustomRule {
-  bool appliesTo(instance, _) => instance.runtimeType == $targetName;
-  create(state) => new $targetName$constructorName($constructorArgumentString);
+class $AS_PLACEHOLDER$ruleName extends CustomRule {
+  bool appliesTo(instance, _) => instance.runtimeType == $AS_PLACEHOLDER.$targetName;
+  create(state) => new $AS_PLACEHOLDER.$targetName$constructorName($constructorArgumentString);
   getState(instance) => $collectionStart
 ''';
 
@@ -119,7 +266,7 @@ class $ruleName extends CustomRule {
 
   /// The bottom part of the SerializationRule class definition.
   get footer =>
-      '$collectionEnd;\n' '  void setState($targetName instance, state) {\n'
+      '$collectionEnd;\n' '  void setState($AS_PLACEHOLDER.$targetName instance, state) {\n'
       '$setFields${hasFields ? ";\n" : ""}' '  }\n' '}';
 
   /// The class definition of the generated SerializationRule.
