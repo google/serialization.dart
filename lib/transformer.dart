@@ -150,6 +150,9 @@ class SerializationTransformer extends AggregateTransformer {
   SerializationTransformer.asPlugin(this._settings);
 
   String classifyPrimary(AssetId id) {
+    // Only process Dart files.
+    if (!id.path.endsWith(allowedExtensions)) return null;
+    // All assets processed at once.
     return "allAssets";
   }
 
