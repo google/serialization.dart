@@ -41,3 +41,9 @@ class ThingWithDate {
   String s;
   DateTime d;
 }
+
+// to test the case in which a map has a null key
+class ThingWithMap {
+  Map<int, int> m = {null: 1, 10: 11};
+}
+

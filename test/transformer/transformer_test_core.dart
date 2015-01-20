@@ -18,6 +18,8 @@ var thing2 = new OtherThing.constructor()
 var constructor =
     new ThingWithConstructor("a", "b", "whatever")..settable = "c"..other = "d";
 
+var thingWithMap = new ThingWithMap();
+
 Format format = const SimpleJsonFormat(storeRoundTripInfo: true);
 
 main() {
@@ -70,5 +72,16 @@ main() {
     expect(read.other, "d");
     expect(read.settable, "c");
     expect(read.verifyPrivate("a"), isTrue);
+  });
+  
+  test("Map with a null key", () {
+    var written = serialization1.write(thingWithMap);
+    var read = serialization2.read(written);
+    expect(read is ThingWithMap, isTrue);
+    expect(read.m is Map, isTrue);
+    expect(read.m.length, 2);
+    expect(read.m[null], 1);
+    expect(read.m[10], 11);
+    expect(read.m, {null: 1, 10: 11});
   });
 }
