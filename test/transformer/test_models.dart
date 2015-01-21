@@ -33,3 +33,8 @@ class ThingWithConstructor {
   set settable(x) => _settable = x;
   verifyPrivate(x) => _priv == x;
 }
+
+// to test the case in which a map has a null key
+class ThingWithMap {
+  Map<int, int> m = {null: 1, 10: 11};
+}

@@ -249,14 +249,15 @@ class MapRule extends SerializationRule {
   }
 
   void inflateNonEssentialFromList(List state, Map newMap, Reader r) {
+    bool isNextOneKey = true;
     var key;
     for (var each in state) {
-      if (key == null) {
+      if (isNextOneKey == true) {
         key = each;
       } else {
         newMap[r.inflateReference(key)] = r.inflateReference(each);
-        key = null;
       }
+      isNextOneKey = !isNextOneKey;
     }
   }
 
