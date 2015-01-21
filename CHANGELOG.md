@@ -1,3 +1,6 @@
+## 0.10.4
+  * Fix to handle null keys in maps.
+
 ## 0.10.3
   * Clean up setup for serialization. Adds `addRules`,
     `defaultFormat`, and a named `format` parameter to
