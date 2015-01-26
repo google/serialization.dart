@@ -1,5 +1,5 @@
 name: serialization
-version: 0.10.4-dev
+version: 0.10.4
 author: Alan Knight <alanknight@google.com>
 description: Provide a serialization facility for Dart objects.
 homepage: https://github.com/google/serialization.dart
