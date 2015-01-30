@@ -216,7 +216,7 @@ class SerializationTransformer extends AggregateTransformer {
         return asset.readAsString()..then((String content) {
 
           // Get code to inject in the template for the current asset.
-          AssetSerializationAnalysisResults results = analyzeAsset(
+          AssetAnalysisResults results = analyzeAsset(
               content,
               listFormat: useLists,
               processAnnotatedClasses: useAnnotation,
