@@ -35,7 +35,7 @@ const String GENERATED_RULES_MAP_MARKER =  "//{{GENERATED_RULES_MAP_MARKER}}";
 /// If [listFormat] is true, then the output of the rule will be a list
 /// of field values. If it is false, then the output is a map keyed by
 /// field name. See the comment for transformer.dart.
-AssetSerializationAnalysisResults analyzeAsset(String contents,
+AssetAnalysisResults analyzeAsset(String contents,
     {bool listFormat: true, processAnnotatedClasses: false,
     processAllClasses: false}) {
 
@@ -81,7 +81,7 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
   // There was no class declaration in this file or they were not annotated with
   // @Serializable when required.
   if (classes.isEmpty) {
-    return new AssetSerializationAnalysisResults(null, null, libraryName,
+    return new AssetAnalysisResults(null, null, libraryName,
         partOf != null, importsSerialization, importsSerializationMirror);
   }
 
@@ -94,13 +94,13 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
       .join("\n");
   var ruleDeclarations = rules.map((x) => x.rule).join("\n\n") + "\n\n";
 
-  return new AssetSerializationAnalysisResults(ruleDeclarations,
+  return new AssetAnalysisResults(ruleDeclarations,
       mapOfRuleNamesToRules, libraryName, partOf != null, importsSerialization,
       importsSerializationMirror);
 }
 
 /// Contains the result of the file analysis by the Serialization transformer.
-class AssetSerializationAnalysisResults {
+class AssetAnalysisResults {
 
   /// Code of all the generated serialization rules for this file.
   final String generatedRule;
@@ -131,7 +131,7 @@ class AssetSerializationAnalysisResults {
   ///     import "package:serialization/serialization_mirrors.dart"...
   final bool importsSerializationMirror;
 
-  AssetSerializationAnalysisResults(this.generatedRule,
+  AssetAnalysisResults(this.generatedRule,
       this.ruleMapEntry, this.library, this.isPartOf, this.importsSerialization,
       this.importsSerializationMirror);
 
@@ -156,12 +156,12 @@ class AssetSerializationAnalysisResults {
 
 /// Given a list of File results returns the code for the generated rules file.
 String generateSerializationRulesFileCode(
-    List<AssetSerializationAnalysisResults> results) {
+    List<AssetAnalysisResults> results) {
 
   File templateFile = new File(GENERATED_RULES_TEMPLATE_PATH);
   String template = templateFile.readAsStringSync();
 
-  for (AssetSerializationAnalysisResults result in results) {
+  for (AssetAnalysisResults result in results) {
     // Add the import statement.
     if (result.importStatement != null) {
       template = template.replaceFirst(GENERATED_IMPORTS_MARKER,
