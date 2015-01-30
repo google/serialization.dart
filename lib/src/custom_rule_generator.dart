@@ -80,7 +80,7 @@ AssetSerializationAnalysisResults analyzeAsset(String contents,
 
   // There was no class declaration in this file or they were not annotated with
   // @Serializable when required.
-  if (classes.length == 0) {
+  if (classes.isEmpty) {
     return new AssetSerializationAnalysisResults(null, null, libraryName,
         partOf != null, importsSerialization, importsSerializationMirror);
   }
