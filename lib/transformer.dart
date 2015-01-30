@@ -204,7 +204,7 @@ class SerializationTransformer extends AggregateTransformer {
       Map<String, AssetId> librariesPath = new Map();
 
       // All Generated Rule Code to include in the Template file.
-      List<AssetSerializationAnalysisResults> allGeneratedRuleCodes =
+      List<AssetAnalysisResults> allGeneratedRuleCodes =
           new List();
 
       transform.logger.info("Got template and ${assets.length} assets.");
@@ -295,12 +295,12 @@ class SerializationTransformer extends AggregateTransformer {
 
   /// Generates the files containing the serialization rules.
   static List<Asset> generateSerializationRulesAsset(
-      List<AssetSerializationAnalysisResults> generatedRuleCodes,
+      List<AssetAnalysisResults> generatedRuleCodes,
       Map<String, AssetId> librariesPath, String mainPackage,
       String rulesFileName, TransformLogger logger) {
 
     // Map of importable Rules for each top directory.
-    Map<String, List<AssetSerializationAnalysisResults>>
+    Map<String, List<AssetAnalysisResults>>
         importableRulesPerTopDir = new Map();
     librariesPath.values.forEach((AssetId assetId){
       // Getting top directory of the assets to import ("lib", "bin", "web").
@@ -311,7 +311,7 @@ class SerializationTransformer extends AggregateTransformer {
     });
 
     // Adding generated rules code and imports to the Generated Rules Files.
-    for(AssetSerializationAnalysisResults results in generatedRuleCodes) {
+    for(AssetAnalysisResults results in generatedRuleCodes) {
 
       // Finding AssetId to import.
       AssetId toImport = librariesPath[results.library];
