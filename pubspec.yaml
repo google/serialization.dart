@@ -1,5 +1,5 @@
 name: serialization
-version: 0.10.4
+version: 0.10.4+1
 author: Alan Knight <alanknight@google.com>
 description: Provide a serialization facility for Dart objects.
 homepage: https://github.com/google/serialization.dart
@@ -8,6 +8,7 @@ environment:
 dependencies:
   analyzer: '>=0.21.1 <0.24.0'
   barback: '>=0.13.0 <0.16.0'
+  path: '>=1.2.0 <2.0.0'
 dev_dependencies:
   unittest: '>=0.9.0 <0.12.0'
 transformers:

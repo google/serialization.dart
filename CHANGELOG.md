@@ -1,3 +1,6 @@
+## 0.10.4+1
+  * Added path package dependency (used in transformer).
+
 ## 0.10.4
   * Fix to handle null keys in maps.
 
