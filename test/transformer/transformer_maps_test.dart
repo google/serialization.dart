@@ -41,7 +41,10 @@ class DateAsStringRule extends SerializationRule {
 
 formatSpecificTests(serialization1, serialization2) {
   test("Verify that we are actually writing in map format", () {
-    var written = serialization1.write(thing1);
+    // If we're self-describing it won't be a map, so make sure we write
+    // without it.
+    var writer = serialization1.newWriter()..selfDescribing = false;
+    var written = writer.write(thing1);
     expect(written is Map, isTrue);
     expect(written['name'], 'thing1');
   });

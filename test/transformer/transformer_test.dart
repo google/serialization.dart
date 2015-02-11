@@ -14,7 +14,8 @@ part "transformer_test_core.dart";
 formatSpecificTests(serialization1, serialization2) {
   test("Verify that we are actually writing in simple JSON format as a list",
       () {
-    var written = serialization1.write(thing1);
+    var writer = serialization1.newWriter()..selfDescribing = false;
+    var written = writer.write(thing1);
     expect(written is List, isTrue);
     expect(written[1], 'thing1');
   });

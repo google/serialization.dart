@@ -25,10 +25,25 @@ Format format = const SimpleJsonFormat(storeRoundTripInfo: true);
 main() {
   // Create separate serializations for reading and writing to make sure
   // nothing relies on common state.
-  var serialization1 =
+  var hardCodedWrite =
       new Serialization(format: format)..addRules(rules.values);
-  var serialization2 =
+  var hardCodedRead =
       new Serialization(format: format)..addRules(rules.values);
+
+  testWith(hardCodedWrite, hardCodedRead);
+
+  var generatedRules = rules;
+  var selfDescribingWrite = new Serialization(format: format)
+    ..addRules(generatedRules.values)
+    ..selfDescribing = true
+    ..namedObjects = generatedRules;
+  var selfDescribingRead = new Serialization(format: format)
+    ..selfDescribing = true
+    ..namedObjects = rules;
+  testWith(selfDescribingWrite, selfDescribingRead);
+}
+
+testWith(serialization1, serialization2) {
 
   formatSpecificTests(serialization1, serialization2);
 
@@ -73,7 +88,7 @@ main() {
     expect(read.settable, "c");
     expect(read.verifyPrivate("a"), isTrue);
   });
-  
+
   test("Map with a null key", () {
     var written = serialization1.write(thingWithMap);
     var read = serialization2.read(written);
