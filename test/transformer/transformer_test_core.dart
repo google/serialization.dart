@@ -38,7 +38,6 @@ main() {
     ..selfDescribing = true
     ..namedObjects = generatedRules;
   var selfDescribingRead = new Serialization(format: format)
-    ..selfDescribing = true
     ..namedObjects = rules;
   testWith(selfDescribingWrite, selfDescribingRead);
 }
