@@ -78,8 +78,14 @@ commonTests() {
 
   test('date', () {
     var date = new DateTime.now();
+    // With the VM storing microseconds, recreating a DateTime
+    // using milliseconds won't match, so do that upfront to
+    // reduce it to one with millisecond precision.
+    date = new DateTime.fromMillisecondsSinceEpoch(date.millisecondsSinceEpoch);
     var utcDate = new DateTime.utc(date.year, date.month, date.day,
         date.hour, date.minute, date.second, date.millisecond);
+    utcDate = new DateTime.fromMillisecondsSinceEpoch(
+        utcDate.millisecondsSinceEpoch, isUtc: true);
     var s = new Serialization();
     var out = s.write([date, utcDate]);
     expect(s.selfDescribing, isTrue);
