@@ -1,3 +1,9 @@
+## 0.10.4+3
+  * Fix tests to deal with DateTimes on the VM using microseconds. 
+  
+## 0.10.4+2
+  * Update prerequisites and .gitignore.
+
 ## 0.10.4+1
   * Added path package dependency (used in transformer).
 
