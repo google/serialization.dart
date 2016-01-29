@@ -5,7 +5,7 @@
 library serialization_test;
 
 import 'dart:isolate';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 import 'serialization_test_common.dart';
 
 /**

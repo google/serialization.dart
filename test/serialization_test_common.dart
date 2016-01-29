@@ -10,7 +10,7 @@ import 'dart:isolate';
 
 import 'package:serialization/serialization.dart';
 import 'package:serialization/src/serialization_helpers.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 part 'test_models.dart';
 

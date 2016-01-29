@@ -5,7 +5,7 @@
 library serialization_test;
 
 import 'dart:convert';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 import 'package:serialization/serialization.dart';
 
 import 'serialization_test_common.dart';

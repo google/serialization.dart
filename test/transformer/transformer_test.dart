@@ -7,7 +7,7 @@ library transformer_test;
 import "package:serialization/serialization.dart";
 import "test_models.dart";
 import "test_models_serialization_rules.dart";
-import "package:unittest/unittest.dart";
+import "package:test/test.dart";
 
 part "transformer_test_core.dart";
 

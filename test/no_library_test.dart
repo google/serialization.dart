@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:serialization/serialization_mirrors.dart';
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
 
 class Thing {
   var name;

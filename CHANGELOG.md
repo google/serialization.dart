@@ -1,3 +1,6 @@
+## 0.10.4+4
+  * Update to use test. Otherwise the bot runner fails.
+
 ## 0.10.4+3
   * Fix tests to deal with DateTimes on the VM using microseconds. 
   
